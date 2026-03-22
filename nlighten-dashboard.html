@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>nLighten | UK Regional Construction Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#003014;--green2:#004D20;
+  --teal:#BCD4D0;--teal2:#D6E9E6;--teal3:#EBF4F2;
+  --red:#E42034;--ok:#00B050;--amber:#C0600C;
+  --risk-a:#FCC000;--risk-r:#FF0303;
+  --body:#1C1C1C;--grey:#666;--lgrey:#999;
+  --border:#C8D8D4;--bg:#F4F6F5;--white:#FFFFFF;
+  --s1:0 1px 3px rgba(0,48,20,.07);--s2:0 3px 12px rgba(0,48,20,.11);
+  --s3:0 8px 28px rgba(0,48,20,.16);--s4:0 20px 56px rgba(0,48,20,.22);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--body);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--teal);border-radius:4px}
+
+/* ═══ LOGIN ═══ */
+#login{position:fixed;inset:0;z-index:9000;background:var(--green);display:flex;align-items:center;justify-content:center;padding:16px}
+#login::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 8% 90%,rgba(188,212,208,.18) 0%,transparent 55%),radial-gradient(ellipse 40% 50% at 92% 10%,rgba(228,32,52,.1) 0%,transparent 55%)}
+.lcard{background:var(--white);border-radius:12px;padding:36px 40px;width:100%;max-width:420px;position:relative;z-index:1;box-shadow:var(--s4);animation:rise .4s cubic-bezier(.16,1,.3,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.lbrand{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;margin-bottom:20px;border-bottom:1.5px solid var(--teal3)}
+.lsub{font-size:9px;color:var(--grey);font-weight:600;letter-spacing:.15em;text-transform:uppercase;text-align:right;line-height:1.5}
+.ltitle{font-size:16px;font-weight:700;color:var(--green);margin-bottom:4px}
+.ldesc{font-size:12px;color:var(--grey);margin-bottom:18px;line-height:1.6}
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.rbtn{border:1.5px solid var(--border);border-radius:8px;padding:14px 8px 12px;text-align:center;cursor:pointer;background:var(--white);transition:all .18s;user-select:none}
+.rbtn:hover{border-color:var(--teal);background:var(--teal3);transform:translateY(-2px)}
+.rbtn.on{border-color:var(--green);background:var(--teal3);box-shadow:0 0 0 2px rgba(0,48,20,.15)}
+.ricon{font-size:22px;margin-bottom:5px;display:block}
+.rlbl{font-size:11px;font-weight:700;color:var(--green);display:block}
+.rdsc{font-size:9px;color:var(--grey);margin-top:1px;display:block}
+.pwrap{display:none;margin-top:4px}
+.flbl{font-size:9px;font-weight:700;color:var(--grey);letter-spacing:.1em;display:block;margin-bottom:4px;text-transform:uppercase}
+.finp{width:100%;border:1.5px solid var(--border);border-radius:5px;padding:11px 12px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;color:var(--body);background:var(--white)}
+.finp:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(188,212,208,.2)}
+.lbtn-go{width:100%;margin-top:12px;background:var(--green);border:none;border-radius:5px;color:var(--white);padding:12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:.02em;box-shadow:0 3px 12px rgba(0,48,20,.3);transition:opacity .2s,transform .15s}
+.lbtn-go:hover{opacity:.9;transform:translateY(-1px)}
+.lbtn-go:disabled{opacity:.5;cursor:default;transform:none}
+.lerr{background:#FDF2F1;border:1px solid #EDADA7;border-radius:5px;padding:8px 12px;font-size:12px;color:#C0392B;font-weight:600;margin-top:8px;display:none}
+.lok{background:#EBF7F0;border:1px solid #7ECFA0;border-radius:5px;padding:8px 12px;font-size:12px;color:var(--ok);font-weight:600;margin-top:8px;display:none}
+.lfoot{margin-top:14px;padding-top:12px;border-top:1px solid var(--teal3);font-size:10px;color:var(--lgrey);text-align:center}
+
+/* ═══ APP SHELL ═══ */
+#app{display:none;flex-direction:column;min-height:100vh}
+.nav{background:var(--green);height:52px;display:flex;align-items:center;padding:0 20px;position:sticky;top:0;z-index:400;box-shadow:0 2px 8px rgba(0,48,20,.45);flex-shrink:0}
+.nbrand{display:flex;align-items:center;gap:10px;padding-right:20px;margin-right:20px;border-right:1px solid rgba(255,255,255,.15);flex-shrink:0;cursor:pointer}
+.nstrap{font-size:8px;color:rgba(255,255,255,.4);letter-spacing:.15em;font-weight:600;margin-top:1px}
+.ntabs{display:flex;align-items:stretch;flex:1;overflow-x:auto}
+.ntabs::-webkit-scrollbar{display:none}
+.ntab{display:flex;align-items:center;gap:5px;background:none;border:none;border-bottom:3px solid transparent;color:rgba(255,255,255,.55);font-size:12px;font-weight:600;padding:0 15px;height:52px;cursor:pointer;white-space:nowrap;font-family:inherit;transition:color .15s,border-color .15s;flex-shrink:0}
+.ntab:hover{color:var(--white)}
+.ntab.on{color:var(--white);border-bottom-color:var(--red)}
+.nbadge{width:7px;height:7px;border-radius:50%;background:var(--risk-a);flex-shrink:0;animation:blink 2s infinite;margin-left:4px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.nright{margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0;padding-left:12px}
+.nchip{font-size:10px;color:rgba(255,255,255,.9);font-weight:700;padding:3px 10px;background:rgba(255,255,255,.12);border-radius:20px;border:1px solid rgba(255,255,255,.15)}
+.nbtn{background:none;border:1px solid rgba(255,255,255,.18);border-radius:16px;color:rgba(255,255,255,.55);font-size:10px;font-weight:700;padding:2px 9px;cursor:pointer;font-family:inherit;white-space:nowrap;transition:border-color .15s,color .15s}
+.nbtn:hover{border-color:rgba(255,255,255,.4);color:rgba(255,255,255,.9)}
+.main{flex:1;padding:22px 22px 54px;max-width:1480px;width:100%;margin:0 auto}
+.view{display:none}
+.view.on{display:block;animation:fi .2s ease both}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.ptitle{font-size:22px;font-weight:800;color:var(--green);margin-bottom:3px}
+.psub{font-size:12px;color:var(--grey);margin-bottom:18px}
+.foot{background:var(--teal);position:fixed;bottom:0;left:0;right:0;height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;z-index:300;border-top:1px solid rgba(0,48,20,.15)}
+.foot span{font-size:10px;font-weight:600;color:var(--green);opacity:.75}
+
+/* ═══ COMPONENTS ═══ */
+.card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:16px 18px;box-shadow:var(--s1);margin-bottom:14px}
+.shdr{background:var(--teal);color:var(--body);font-size:10px;font-weight:700;padding:7px 12px;border-radius:5px 5px 0 0;margin:-16px -18px 12px;letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center}
+.shdr.green{background:var(--green);color:var(--white)}
+.shdr.red{background:var(--red);color:var(--white)}
+.shdr.amber{background:var(--risk-a);color:var(--body)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.btn{border:none;border-radius:5px;padding:8px 16px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .15s}
+.btn-p{background:var(--green);color:var(--white);box-shadow:0 2px 8px rgba(0,48,20,.25)}
+.btn-p:hover{opacity:.9;transform:translateY(-1px)}
+.btn-o{background:var(--white);color:var(--green);border:1.5px solid var(--border)}
+.btn-o:hover{border-color:var(--green);background:var(--teal3)}
+.btn-ok{background:var(--ok);color:var(--white)}
+.btn-ok:hover{opacity:.9}
+.btn-rj{background:var(--red);color:var(--white)}
+.btn-rj:hover{opacity:.9}
+.btn-lg{padding:12px 24px;font-size:14px}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.home-link{background:none;border:none;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;padding:0;font-family:inherit;opacity:.7;margin-bottom:12px}
+.home-link:hover{opacity:1;text-decoration:underline}
+
+/* TABLE */
+.nlt{width:100%;border-collapse:collapse;font-size:11px}
+.nlt th{background:var(--teal);color:var(--body);font-size:9px;font-weight:700;letter-spacing:.04em;padding:6px 8px;text-align:left;border-bottom:2px solid rgba(0,48,20,.15);position:sticky;top:0}
+.nlt td{padding:5px 8px;border-bottom:1px solid var(--teal3);vertical-align:top}
+.nlt tr:hover td{background:var(--teal3)}
+
+/* RAG */
+.rag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px}
+.rag .rdot{width:7px;height:7px;border-radius:50%}
+.rag.G{background:#E8F5E9;color:#1B7A2B}.rag.G .rdot{background:#1B7A2B}
+.rag.A{background:#FFF8E1;color:var(--amber)}.rag.A .rdot{background:var(--amber)}
+.rag.R{background:#FFEBEE;color:#C0392B}.rag.R .rdot{background:#C0392B}
+
+/* QC PIPELINE */
+.qcpipe{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.qcstep{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:4px;font-size:11px;font-weight:600;background:var(--teal3);border:1px solid var(--border);flex:1;min-width:140px}
+.qcstep.active{background:#FFF8E1;border-color:var(--risk-a);color:var(--amber)}
+.qcstep.pass{background:#E8F5E9;border-color:#7ECFA0;color:#1B7A2B}
+.qcstep.fail{background:#FFEBEE;border-color:#EDADA7;color:#C0392B}
+.qcstep .qcicon{font-size:16px}
+
+/* DROPZONE */
+.dz{border:2px dashed var(--border);border-radius:8px;padding:28px 16px;text-align:center;cursor:pointer;transition:all .2s;background:var(--teal3)}
+.dz:hover,.dz.over{border-color:var(--green);background:var(--teal2)}
+.dz .dzicon{font-size:32px;margin-bottom:6px}
+.dz .dzlbl{font-size:13px;font-weight:600;color:var(--green)}
+.dz .dzsub{font-size:10px;color:var(--grey);margin-top:4px}
+
+/* TOAST */
+#toasts{position:fixed;top:60px;right:16px;z-index:8000;display:flex;flex-direction:column;gap:6px}
+.toast{padding:10px 16px;border-radius:6px;font-size:12px;font-weight:600;color:var(--white);box-shadow:var(--s3);animation:slideIn .3s ease;min-width:220px;max-width:380px}
+.toast.tg{background:var(--ok)}.toast.ta{background:var(--amber)}.toast.tr{background:var(--red)}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+.toast.out{animation:slideOut .25s ease forwards}
+@keyframes slideOut{to{opacity:0;transform:translateX(20px)}}
+
+/* MODAL */
+.mbg{display:none;position:fixed;inset:0;z-index:7000;background:rgba(0,48,20,.6);align-items:center;justify-content:center;padding:16px}
+.mbg.on{display:flex}
+.mbox{background:var(--white);border-radius:10px;padding:24px;width:100%;max-width:500px;box-shadow:var(--s4);animation:rise .3s ease both;max-height:90vh;overflow-y:auto}
+.mttl{font-size:16px;font-weight:700;color:var(--green);margin-bottom:12px}
+
+/* EXEC PRINT */
+@media print{
+  .noprint{display:none!important}
+  .nav,.foot{display:none!important}
+  .main{padding:0!important;max-width:100%!important}
+  .exec-page{page-break-after:always;margin:0!important;box-shadow:none!important;border:none!important;break-inside:avoid}
+  .exec-page:last-child{page-break-after:auto}
+  body{background:#fff!important;font-size:11px!important}
+  .nlt{font-size:9px!important}
+  .nlt th,.nlt td{padding:3px 5px!important}
+  .card{box-shadow:none!important;border:1px solid #ccc!important}
+}
+/* MOBILE RESPONSIVE */
+@media(max-width:768px){
+  .nav{height:auto;min-height:48px;flex-wrap:wrap;padding:8px 12px;gap:6px}
+  .nbrand{padding-right:10px;margin-right:10px}
+  .ntabs{order:3;width:100%;overflow-x:auto;padding-top:4px;border-top:1px solid rgba(255,255,255,.1)}
+  .ntab{padding:0 10px;height:36px;font-size:11px}
+  .nright{gap:6px}
+  .main{padding:12px 10px 50px}
+  .g2{grid-template-columns:1fr!important}
+  .lcard{padding:24px 20px}
+  .rgrid{grid-template-columns:1fr!important;gap:6px}
+  .rbtn{padding:10px 12px;display:flex;align-items:center;gap:8px;text-align:left}
+  .ricon{font-size:18px;margin-bottom:0}
+  .photo-grid{grid-template-columns:repeat(2,1fr)!important}
+  .qcpipe{flex-direction:column}
+  .status-flow{flex-wrap:wrap}
+  .sf-line{min-width:10px;flex:0 0 10px}
+}
+.exec-page{background:var(--white);border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:var(--s2);margin-bottom:16px}
+.stamp{text-align:right;margin-bottom:10px}
+.stamp span{font-size:10px;font-weight:700;padding:3px 10px;border-radius:3px}
+.stamp .approved{background:#E8F5E9;color:#1B7A2B;border:1px solid #7ECFA0}
+.stamp .pending{background:#FFF8E1;color:var(--amber);border:1px solid var(--risk-a)}
+.stamp .rejected{background:#FFEBEE;color:#C0392B;border:1px solid #EDADA7}
+
+/* NOTIFICATION PANEL */
+.notif-panel{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px}
+.notif-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--teal3)}
+.notif-item:last-child{border-bottom:none}
+.notif-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.notif-text{font-size:12px;color:var(--body);flex:1}
+.notif-time{font-size:10px;color:var(--lgrey);white-space:nowrap}
+
+/* STATUS TRACKER */
+.status-flow{display:flex;align-items:center;gap:4px;margin:14px 0}
+.sf-step{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;text-align:center}
+.sf-circle{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid var(--border);color:var(--grey);background:var(--white)}
+.sf-circle.done{background:var(--ok);border-color:var(--ok);color:var(--white)}
+.sf-circle.active{background:var(--risk-a);border-color:var(--risk-a);color:var(--white);animation:blink 2s infinite}
+.sf-circle.rejected{background:var(--red);border-color:var(--red);color:var(--white)}
+.sf-lbl{font-size:9px;font-weight:600;color:var(--grey)}
+.sf-line{height:2px;flex:1;background:var(--border);min-width:20px}
+.sf-line.done{background:var(--ok)}
+
+/* PHOTO GALLERY */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:8px}
+.photo-card{position:relative;border-radius:6px;overflow:hidden;border:1px solid var(--border);cursor:pointer}
+.photo-card img{width:100%;height:150px;object-fit:cover;display:block}
+.photo-card .photo-del{position:absolute;top:4px;right:4px;background:rgba(192,57,43,.9);border:none;border-radius:50%;color:#fff;width:22px;height:22px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700}
+
+/* SHARE PANEL */
+.share-box{background:var(--teal3);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-top:14px}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ TOASTS ═══════════════════ -->
+<div id="toasts"></div>
+
+<!-- ═══════════════════ LOGIN ═══════════════════ -->
+<div id="login">
+<div class="lcard">
+  <div class="lbrand">
+    <img src="data:image/png;base64,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" alt="nLighten" style="height:36px;width:auto;">
+    <div class="lsub">UK Construction<br>Dashboard</div>
+  </div>
+  <div class="ltitle">Welcome back</div>
+  <div class="ldesc">Select your role to continue to the UK Regional Construction Dashboard.</div>
+  <div class="rgrid">
+    <div class="rbtn" id="rb-pm" onclick="pickRole('pm')"><span class="ricon">📋</span><span class="rlbl">Project Manager</span><span class="rdsc">Submit POAP</span></div>
+    <div class="rbtn" id="rb-rd" onclick="pickRole('rd')"><span class="ricon">🏗️</span><span class="rlbl">Regional Director</span><span class="rdsc">Review & approve</span></div>
+    <div class="rbtn" id="rb-exec" onclick="pickRole('exec')"><span class="ricon">📊</span><span class="rlbl">Executive</span><span class="rdsc">View summary</span></div>
+  </div>
+  <div class="pwrap" id="pwrap">
+    <label class="flbl" id="pwlbl">ACCESS CODE</label>
+    <input class="finp" type="password" id="pwin" placeholder="Enter access code" autocomplete="current-password">
+    <div class="lerr" id="lerr"></div>
+    <div class="lok" id="lok"></div>
+    <button class="lbtn-go" id="lbtngo" onclick="doLogin()">Access Dashboard</button>
+  </div>
+  <div class="lfoot">nLighten Confidential · Authorised Access Only</div>
+</div>
+</div>
+
+<!-- ═══════════════════ APP ═══════════════════ -->
+<div id="app">
+<nav class="nav">
+  <div class="nbrand" onclick="goHome()">
+    <img src="data:image/png;base64,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" alt="nLighten" style="height:28px;width:auto;">
+    <div class="nstrap">UK REGIONAL CONSTRUCTION</div>
+  </div>
+  <div class="ntabs">
+    <button class="ntab on" data-v="portfolio" onclick="nav('portfolio')" id="t-portfolio">Portfolio</button>
+    <button class="ntab" data-v="submit" onclick="nav('submit')" id="t-submit" style="display:none">⬆ Submit POAP</button>
+    <button class="ntab" data-v="approvals" onclick="nav('approvals')" id="t-approvals" style="display:none">Approvals <span class="nbadge" id="abadge" style="display:none"></span></button>
+    <button class="ntab" data-v="exec" onclick="nav('exec')" id="t-exec">Executive Summary</button>
+  </div>
+  <div class="nright">
+    <button class="nbtn" onclick="showAuditLog()" title="View audit trail">📋</button>
+    <button class="nbtn" onclick="openEmailCfg()" title="Email notifications">✉</button>
+    <button class="nbtn" onclick="exportState()" title="Export data">↓ Export</button>
+    <label class="nbtn" title="Import data" style="cursor:pointer">↑ Import<input type="file" accept=".json" onchange="importState(this)" style="display:none"></label>
+    <button class="nbtn" onclick="logout()">Sign out</button>
+    <span class="nchip" id="uchip"></span>
+  </div>
+</nav>
+
+<div class="main" role="main">
+  <!-- ═══ PORTFOLIO ═══ -->
+  <div class="view on" id="view-portfolio">
+    <div class="ptitle">UK Regional Construction Dashboard</div>
+    <div class="psub" id="portfolio-sub">Consolidated view of all UK construction projects</div>
+
+    <!-- Notifications -->
+    <div class="notif-panel noprint" id="notif-panel" style="display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px;">📬 NOTIFICATIONS</div>
+      <div id="notif-list"></div>
+    </div>
+
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card"><div class="shdr green">Budget vs EAC — All Sites (£m)</div><div style="height:175px;"><canvas id="ch-bud"></canvas></div></div>
+      <div class="card"><div class="shdr green">Programme Status</div><div style="height:175px;"><canvas id="ch-prg"></canvas></div></div>
+    </div>
+    <div class="card"><div class="shdr green">SITE REPORTS</div><div id="site-cards"></div></div>
+  </div>
+
+  <!-- ═══ PM SUBMIT ═══ -->
+  <div class="view" id="view-submit">
+    <button class="home-link" onclick="goHome()">← Home</button>
+    <div class="ptitle">Submit POAP Report</div>
+    <div class="psub">Upload your Project Progress Report for QC review and approval</div>
+
+    <!-- Step 1: PM Identity -->
+    <div class="card">
+      <div class="shdr">Step 1 — Your Details</div>
+      <div class="g2" style="gap:10px">
+        <div><label class="flbl">FULL NAME</label><input class="finp" type="text" id="pm-name" placeholder="e.g. Phil Toghill"></div>
+        <div><label class="flbl">EMAIL</label><input class="finp" type="email" id="pm-email" placeholder="e.g. p.toghill@nlighten.com"></div>
+      </div>
+      <div class="g2" style="gap:10px;margin-top:10px">
+        <div><label class="flbl">SITE</label>
+          <select class="finp" id="pm-site" style="cursor:pointer">
+            <option value="">— Select site —</option>
+            <option value="BRS1">BRS1 — Bristol</option>
+            <option value="BHX1">BHX1 — Birmingham</option>
+            <option value="LTN1">LTN1 — Luton</option>
+            <option value="LPL1">LPL1 — Liverpool</option>
+            <option value="MAN1">MAN1 — Manchester</option>
+            <option value="STN1">STN1 — Stansted</option>
+          </select>
+        </div>
+        <div><label class="flbl">REPORT DATE</label><input class="finp" type="date" id="pm-date"></div>
+      </div>
+    </div>
+
+    <!-- QC Pipeline Visual -->
+    <div class="card" id="qc-card" style="display:none">
+      <div class="shdr amber">Quality Control Pipeline</div>
+      <div class="qcpipe" id="qcpipe"></div>
+      <div id="qc-results"></div>
+    </div>
+
+    <!-- Step 2: Upload -->
+    <div class="card" id="upload-card">
+      <div class="shdr">Step 2 — Upload Your POAP Excel <span style="float:right;display:flex;gap:4px"><button class="btn btn-o" style="font-size:9px;padding:2px 6px" onclick="saveDraft()">💾 Save Draft</button><button class="btn btn-o" style="font-size:9px;padding:2px 6px" onclick="restoreDraft()">📂 Restore Draft</button></span></div>
+      <div class="dz" id="dropzone" onclick="document.getElementById('xl-in').click()" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="this.classList.remove('over');dropFile(event)">
+        <div class="dzicon">📎</div>
+        <div class="dzlbl">Drop your POAP Excel file here</div>
+        <div class="dzsub">Or click to browse · Accepts .xlsx, .xlsm files</div>
+        <input type="file" id="xl-in" accept=".xlsx,.xlsm,.xls" onchange="fileChosen(this)" style="display:none">
+      </div>
+      <div id="file-info" style="margin-top:8px;font-size:11px;color:var(--grey)"></div>
+    </div>
+
+    <!-- Step 3: Photos -->
+    <div class="card">
+      <div class="shdr">Step 3 — Site Photos (optional, high-resolution)</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-o" onclick="document.getElementById('ph-in').click()">📷 Upload Photos</button>
+        <span style="font-size:10px;color:var(--grey)">JPEG or PNG · Photos will be included in the Executive Summary</span>
+      </div>
+      <input type="file" id="ph-in" accept="image/*" multiple onchange="addPhotos(this)" style="display:none">
+      <div class="photo-grid" id="ph-prev"></div>
+    </div>
+
+    <!-- Step 4: Preview & Submit -->
+    <div class="card" id="submit-card" style="display:none">
+      <div class="shdr green">Step 4 — Preview & Submit</div>
+      <div style="margin-bottom:10px">
+        <button class="btn btn-o" onclick="togglePMPreview()" id="pm-prev-btn">Show Executive Summary Preview ▼</button>
+      </div>
+      <div id="pm-preview" style="display:none;margin-bottom:14px;border:1px solid var(--border);border-radius:6px;overflow:hidden"></div>
+
+      <!-- Status Flow -->
+      <div class="status-flow" id="submit-flow">
+        <div class="sf-step"><div class="sf-circle done">✓</div><div class="sf-lbl">Upload</div></div>
+        <div class="sf-line done"></div>
+        <div class="sf-step"><div class="sf-circle done">✓</div><div class="sf-lbl">QC Check</div></div>
+        <div class="sf-line"></div>
+        <div class="sf-step"><div class="sf-circle active">3</div><div class="sf-lbl">Submit</div></div>
+        <div class="sf-line"></div>
+        <div class="sf-step"><div class="sf-circle">4</div><div class="sf-lbl">RD Review</div></div>
+        <div class="sf-line"></div>
+        <div class="sf-step"><div class="sf-circle">5</div><div class="sf-lbl">Published</div></div>
+      </div>
+
+      <div style="text-align:center;margin-top:14px">
+        <button class="btn btn-p btn-lg" onclick="submitReport()">Submit to Regional Director for Approval →</button>
+        <div style="font-size:11px;color:var(--grey);margin-top:6px">Report will be sent to Sam Hill (UK Regional Director) for review</div>
+      </div>
+    </div>
+
+    <!-- Submission History -->
+    <div class="card">
+      <div class="shdr">Your Submission History</div>
+      <div id="sub-hist"></div>
+    </div>
+  </div>
+
+  <!-- ═══ APPROVALS (RD) ═══ -->
+  <div class="view" id="view-approvals">
+    <button class="home-link" onclick="goHome()">← Home</button>
+    <div class="ptitle">Approval Queue</div>
+    <div class="psub">Review and approve PM submissions before publishing to the executive summary</div>
+    <div id="approval-list"></div>
+  </div>
+
+  <!-- ═══ EXECUTIVE SUMMARY ═══ -->
+  <div class="view" id="view-exec">
+    <div style="display:flex;gap:12px;margin-bottom:12px" class="noprint">
+      <button class="home-link" onclick="goHome()">← Home</button>
+    </div>
+    <div class="stamp noprint" id="exec-stamp"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px" class="noprint">
+      <div>
+        <div class="ptitle">Executive Summary</div>
+        <div class="psub">Board-ready report · nLighten UK Construction 2026</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-o" style="font-size:11px" onclick="window.print()">🖨 Print</button>
+        <button class="btn btn-p" style="font-size:11px" onclick="downloadPDF()">⬇ Download PDF</button>
+        <select class="finp" id="exec-site-sel" style="width:auto;padding:6px 10px;font-size:11px" onchange="loadExecSite(this.value)">
+          <option value="">— Select approved report —</option>
+        </select>
+      </div>
+    </div>
+    <div id="exec-report"></div>
+
+    <!-- Share Panel -->
+    <div class="share-box noprint" id="share-panel" style="display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:8px">📤 SHARE THIS REPORT</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <input class="finp" id="share-url" readonly style="flex:1;font-size:11px;padding:8px 10px" value="">
+        <button class="btn btn-p" style="font-size:11px" onclick="copyLink()">Copy Link</button>
+        <button class="btn btn-o" style="font-size:11px" onclick="mailSummary()">✉ Email Link</button>
+        <span id="cok" style="display:none;font-size:10px;color:var(--ok);font-weight:700">✓ Copied!</span>
+      </div>
+      <div style="font-size:10px;color:var(--grey);margin-top:6px">Anyone with this link and Executive login can view the approved summary</div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <span>nLighten · UK Regional Construction Dashboard</span>
+  <span id="email-status" style="cursor:pointer" onclick="openEmailCfg()" title="Click to configure email"></span>
+  <span id="foot-ts"></span>
+</div>
+</div>
+
+<!-- ═══ MODALS ═══ -->
+<div class="mbg" id="m-email">
+  <div class="mbox">
+    <div class="mttl">✉ Email Notification Setup</div>
+    <p style="font-size:11px;color:var(--grey);margin-bottom:12px">Connect EmailJS for automatic email notifications when reports are submitted, approved, or rejected. Free tier: 200 emails/month. <a href="https://www.emailjs.com/" target="_blank" style="color:var(--green)">Sign up at emailjs.com</a></p>
+    <div style="margin-bottom:8px"><label class="flbl">SERVICE ID</label><input class="finp" id="ej-service" placeholder="e.g. service_abc123"></div>
+    <div style="margin-bottom:8px"><label class="flbl">TEMPLATE ID</label><input class="finp" id="ej-template" placeholder="e.g. template_xyz789"></div>
+    <div style="margin-bottom:8px"><label class="flbl">PUBLIC KEY</label><input class="finp" id="ej-pubkey" placeholder="e.g. user_ABCdef123"></div>
+    <div style="font-size:10px;color:var(--grey);margin-bottom:12px">Template variables: <code>{{to_email}}</code> <code>{{to_name}}</code> <code>{{subject}}</code> <code>{{message}}</code> <code>{{site}}</code> <code>{{status}}</code></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-o" onclick="closeM('m-email')">Cancel</button>
+      <button class="btn btn-p" onclick="saveEmailConfig()">Save & Enable</button>
+    </div>
+  </div>
+</div>
+<div class="mbg" id="m-approve">
+  <div class="mbox">
+    <div class="mttl">✓ Approve & Publish</div>
+    <p style="font-size:12px;color:var(--grey);margin-bottom:14px">This will publish the executive summary and notify the PM. The report will be visible to all Executive users.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-o" onclick="closeM('m-approve')">Cancel</button>
+      <button class="btn btn-ok" onclick="doApprove()">Approve & Publish</button>
+    </div>
+  </div>
+</div>
+<div class="mbg" id="m-reject">
+  <div class="mbox">
+    <div class="mttl">↩ Request Amendments</div>
+    <p style="font-size:12px;color:var(--grey);margin-bottom:10px">Add your review comments. The PM will be notified and asked to resubmit.</p>
+    <textarea class="finp" id="rjtxt" rows="4" placeholder="Enter your comments and required changes..." style="resize:vertical"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+      <button class="btn btn-o" onclick="closeM('m-reject')">Cancel</button>
+      <button class="btn btn-rj" onclick="doReject()">Return with Comments</button>
+    </div>
+  </div>
+</div>
+
+<div class="mbg" id="m-audit"><div class="mbox" style="max-width:780px;max-height:90vh" id="m-audit-body"></div></div>
+
+<!-- ═══════════════════ JAVASCRIPT ═══════════════════ -->
+<script>
+/* ═══════════════════════════════════════════════════════════
+   nLighten UK Regional Construction Dashboard v21
+   Complete workflow: PM → QC → RD Review → Exec Summary
+   ═══════════════════════════════════════════════════════════ */
+
+var CODES = {pm:'nLighten-PM', rd:'nLighten-RD', exec:'nLighten-Exec'};
+var REPORT_DATE = '22 March 2026';
+var RD_NAME = 'Sam Hill';
+var RD_EMAIL = 'sam.hill@nlighten.com';
+var _role = null, _aid = null;
+
+/* ═══ QC RULES ═══ */
+var QCS = [
+  {id:'name',cat:'Identity',crit:true,lbl:'Project name present',
+   fix:'Check A1 contains the full project title.',
+   fn:function(d){return d.name&&d.name.trim().length>2;}},
+  {id:'rno',cat:'Identity',crit:true,lbl:'Report number entered',
+   fix:'Fill in REPORT NO. (cell F5).',
+   fn:function(d){return d.rno&&String(d.rno).trim()!==''&&String(d.rno).trim()!=='0';}},
+  {id:'date',cat:'Identity',crit:true,lbl:'Report date entered',
+   fix:'Fill in REPORT DATE (cell F4).',
+   fn:function(d){return d.date&&String(d.date).trim()!=='';}},
+  {id:'stg',cat:'Identity',crit:false,lbl:'Project stage populated',
+   fix:'Ensure CONSTRUCTION stage shown in Y4.',
+   fn:function(d){return d.stage&&d.stage.trim()!=='';}},
+  {id:'rfb',cat:'Programme',crit:true,lbl:'RFS date present',
+   fix:'Fill in RFS date (cell R4).',
+   fn:function(d){return d.rfb&&String(d.rfb).trim()!==''&&String(d.rfb).trim()!=='0';}},
+  {id:'ms',cat:'Programme',crit:true,lbl:'At least 3 milestones',
+   fix:'Complete SCHEDULE UPDATE with at least 3 milestones.',
+   fn:function(d){return d.ms&&d.ms.length>=3;}},
+  {id:'srag',cat:'Programme',crit:true,lbl:'Schedule RAG set',
+   fix:'Set SCHEDULE RAG (cell AO4) to G, A or R.',
+   fn:function(d){return ['G','A','R'].indexOf(d.rS)>=0;}},
+  {id:'bud',cat:'Cost',crit:true,lbl:'Budget total > £0',
+   fix:'Complete COST PLAN with at least one budget category.',
+   fn:function(d){return Number(d.bud||0)>0;}},
+  {id:'crag',cat:'Cost',crit:true,lbl:'Cost RAG set',
+   fix:'Set COST RAG (cell AO5) to G, A or R.',
+   fn:function(d){return ['G','A','R'].indexOf(d.rC)>=0;}},
+  {id:'cl',cat:'Cost',crit:false,lbl:'At least 2 cost categories',
+   fix:'Enter budget for at least 2 categories in column AC.',
+   fn:function(d){return d.cl&&d.cl.length>=2;}},
+  {id:'sum',cat:'Narrative',crit:true,lbl:'Progress summary (min 80 chars)',
+   fix:'Write progress narrative in F10 — at least 80 characters.',
+   fn:function(d){return d.sum&&d.sum.trim().length>=80;}},
+  {id:'prag',cat:'Narrative',crit:true,lbl:'Progress RAG set',
+   fix:'Set PROGRESS RAG (cell AO3) to G, A or R.',
+   fn:function(d){return ['G','A','R'].indexOf(d.rP)>=0;}},
+  {id:'rsk',cat:'Risk',crit:true,lbl:'At least 1 risk in Risk Register',
+   fix:'Add at least one risk in the Risk Register tab.',
+   fn:function(d){return d.risks&&d.risks.length>=1;}},
+  {id:'rrag',cat:'Risk',crit:true,lbl:'Risks RAG set',
+   fix:'Set RISKS RAG (cell BN21) to G, A or R.',
+   fn:function(d){return ['G','A','R'].indexOf(d.rK)>=0;}},
+  {id:'ehs',cat:'EH&S',crit:false,lbl:'EH&S hours entered',
+   fix:'Enter Total Hours Worked in cell BI9.',
+   fn:function(d){return d.ehs&&d.ehs.hrs!==''&&d.ehs.hrs!==null&&d.ehs.hrs!==undefined;}},
+  /* ─ TAB COMPLETENESS CHECKS ─ */
+  {id:'tab_pm',cat:'Tabs',crit:false,lbl:'Progress Minutes tab has content',
+   fix:'Ensure Progress Minutes tab has meeting notes.',
+   fn:function(d){return d.hasProgressMinutes;}},
+  {id:'tab_act',cat:'Tabs',crit:true,lbl:'Action Tracker has entries',
+   fix:'Add actions to the Action Tracker tab.',
+   fn:function(d){return d.actions&&d.actions.length>=1;}},
+  {id:'tab_dec',cat:'Tabs',crit:false,lbl:'Decision Tracker has entries',
+   fix:'Add decisions to the Decision Tracker tab.',
+   fn:function(d){return d.decs&&d.decs.length>=1;}},
+  {id:'tab_risk',cat:'Tabs',crit:true,lbl:'Risk Register tab has entries',
+   fix:'Add risks to the Risk Register tab.',
+   fn:function(d){return d.hasRiskRegister;}}
+];
+
+/* ═══ POAP PARSER ═══ */
+function parsePOAP(wb) {
+  var d = {
+    name:'',rno:'',date:'',stage:'',mw:'',rfb:'',rff:'',
+    rP:'A',rS:'A',rC:'A',rO:'A',rK:'A',rE:'A',
+    pm:'',ic:'',bud:0,eac:0,ctd:0,ctc:0,
+    hse:'',foh:'',legal:'',
+    sum:'',upc:'',dectxt:'',
+    ms:[],cl:[],risks:[],actions:[],decs:[],
+    ehs:{},photos:[],
+    hasProgressMinutes:false,hasRiskRegister:false,
+    icStatus:'',permitting:'',utility:'',ofciStatus:'',futurePhases:''
+  };
+
+  function sheetByName(frag){
+    var n=wb.SheetNames.filter(function(x){return x.toLowerCase().indexOf(frag.toLowerCase())>=0;})[0];
+    return n?wb.Sheets[n]:null;
+  }
+  function cellList(s){
+    if(!s)return [];
+    var rng=XLSX.utils.decode_range(s['!ref']||'A1:A1');
+    var out=[];
+    for(var r=rng.s.r;r<=Math.min(rng.e.r,800);r++){
+      for(var c=rng.s.c;c<=Math.min(rng.e.c,100);c++){
+        var addr=XLSX.utils.encode_cell({r:r,c:c});
+        var cell=s[addr];
+        if(cell&&cell.v!==undefined&&cell.v!==null&&cell.v!=='')
+          out.push({r:r,c:c,v:cell.v,s:String(cell.v).trim()});
+      }
+    }
+    return out;
+  }
+  function fv(cells,kws,maxR,maxD){
+    maxR=maxR||25;maxD=maxD||4;
+    for(var i=0;i<cells.length;i++){
+      var low=cells[i].s.toLowerCase();
+      for(var k=0;k<kws.length;k++){
+        if(low.indexOf(kws[k].toLowerCase())>=0){
+          for(var dc=1;dc<=maxR;dc++){
+            var hit=cells.filter(function(x){return x.r===cells[i].r&&x.c===cells[i].c+dc;})[0];
+            if(hit&&hit.s!=='')return hit.v;
+          }
+          for(var dr=1;dr<=maxD;dr++){
+            var hit2=cells.filter(function(x){return x.r===cells[i].r+dr&&x.c===cells[i].c;})[0];
+            if(hit2&&hit2.s!=='')return hit2.v;
+          }
+        }
+      }
+    }
+    return '';
+  }
+  function atRC(cells,r,c){var h=cells.filter(function(x){return x.r===r&&x.c===c;})[0];return h?h.v:'';}
+  function xlDate(v){
+    if(!v)return '';var s=String(v).trim();if(!s||s==='0')return '';
+    if(/[a-zA-Z]/.test(s))return s.replace(/\s*-\s*/g,'-').trim();
+    var n=parseFloat(s);
+    if(!isNaN(n)&&n>40000&&n<60000){
+      var epoch=new Date(1899,11,30);epoch.setDate(epoch.getDate()+Math.round(n));
+      var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return months[epoch.getMonth()]+'-'+String(epoch.getFullYear()).slice(2);
+    }
+    return s;
+  }
+  function toR(v){if(!v)return 'A';var s=String(v).trim().toUpperCase().charAt(0);return['G','A','R'].indexOf(s)>=0?s:'A';}
+
+  /* POAP TAB */
+  var ps=sheetByName('POAP');var pc=cellList(ps);
+  var a1=String(atRC(pc,0,0)||'');
+  if(a1.indexOf('- UK ')>=0)d.name=a1.split('- UK ').pop().trim();
+  else{var f3=atRC(pc,2,5);d.name=f3?String(f3):a1.replace(/PROJECT PROGRESS REPORT.*?[-–]/,'').trim();}
+  if(!d.name)d.name=String(fv(pc,['PROJECT'])||'');
+
+  d.rno=String(fv(pc,['REPORT NO'])||'');
+  d.date=String(fv(pc,['REPORT DATE'])||'');
+  var stageRaw=fv(pc,['PROJECT STAGE'],1,2);
+  d.stage=stageRaw?String(stageRaw):String(fv(pc,['CONSTRUCTION'])||'CONSTRUCTION');
+  d.mw=String(fv(pc,['MW'])||'');
+  var rfsRaw=fv(pc,['RFS','Baseline RFS'],10,2);
+  d.rfb=xlDate(rfsRaw);d.rff=d.rfb;
+  d.pm=String(fv(pc,['PROJECT MANAGER','PM LEAD','PM'])||'');
+  d.ic=String(fv(pc,['IC LEVEL','IC Level'])||'');
+  d.hse=String(fv(pc,['HSE'])||'');
+  d.foh=String(fv(pc,['FoH','FOH'])||'');
+  d.legal=String(fv(pc,['Legal','LEGAL'])||'');
+
+  d.rP=toR(fv(pc,['PROGRESS:'],10,1));
+  d.rS=toR(fv(pc,['SCHEDULE:'],10,1));
+  d.rC=toR(fv(pc,['COST'],10,1));
+  d.rO=toR(fv(pc,['OFCI'],10,1));
+  var rE='A';
+  for(var ei=0;ei<pc.length;ei++){
+    if(pc[ei].s==='EH&S'||pc[ei].s==='EHS'){
+      for(var edc=1;edc<=10;edc++){
+        var ev=pc.filter(function(x){return x.r===pc[ei].r&&x.c===pc[ei].c+edc;})[0];
+        if(ev&&['G','A','R'].indexOf(ev.s.toUpperCase().charAt(0))>=0){rE=ev.s.toUpperCase().charAt(0);break;}
+      }
+      if(rE!=='A')break;
+    }
+  }
+  d.rE=rE;
+  d.rK=toR(fv(pc,['RISKS / ISSUES','RISKS'],25,1));
+
+  var sumRaw=fv(pc,['Summary of progress within the week','Summary of progress'],25,2);
+  if(!sumRaw||String(sumRaw).trim().length<10){
+    var cands=pc.filter(function(x){return x.c===5&&x.r>=6&&x.r<=15&&String(x.v).length>50;});
+    if(cands.length)sumRaw=cands[0].v;
+  }
+  d.sum=String(sumRaw||'');
+  d.dectxt=String(fv(pc,['Key Decisions','KEY DECISIONS'],25,2)||'');
+  d.upc=String(fv(pc,['Upcoming Works','UPCOMING WORKS'],25,2)||'');
+
+  /* Milestones */
+  var msHR=-1;
+  for(var mi=0;mi<pc.length;mi++){if(pc[mi].s==='Key Milestones'&&pc[mi].c<=2){msHR=pc[mi].r;break;}}
+  if(msHR<0)msHR=21;
+  var msSet={};
+  pc.filter(function(x){return x.c===1&&x.r>msHR&&x.r<msHR+30&&x.s.length>6&&['baseline','actual','forecast','variance','key milestones'].indexOf(x.s.toLowerCase())<0;}).forEach(function(x){
+    if(d.ms.length>=12)return;if(msSet[x.s])return;msSet[x.s]=true;
+    var bRaw=atRC(pc,x.r,10),fRaw=atRC(pc,x.r,13)||atRC(pc,x.r,16);
+    d.ms.push({n:x.s,b:xlDate(bRaw),f:xlDate(fRaw)});
+  });
+
+  /* Cost Plan */
+  var cHR=-1;
+  for(var ci=0;ci<pc.length;ci++){if(pc[ci].s==='Budget Category'&&pc[ci].c===24){cHR=pc[ci].r;break;}}
+  if(cHR<0)cHR=21;
+  var budTotal=0;
+  pc.filter(function(x){return x.c===24&&x.r>cHR&&x.r<cHR+25&&x.s.length>2&&x.s.toLowerCase()!=='totals';}).forEach(function(x){
+    if(d.cl.length>=15)return;
+    var bv=atRC(pc,x.r,28),cv=atRC(pc,x.r,32);
+    var n=parseFloat(String(bv).replace(/[£,]/g,''));
+    if(!isNaN(n)&&Math.abs(n)>100){budTotal+=n;d.cl.push({cat:x.s,bud:n,com:parseFloat(cv)||0});}
+  });
+  d.bud=Math.abs(budTotal);
+
+  /* EAC from TOTALS row */
+  var totRow=pc.filter(function(x){return x.c===24&&x.s==='TOTALS';})[0];
+  if(totRow){
+    d.eac=Math.abs(parseFloat(atRC(pc,totRow.r,32))||0);
+    d.ctd=Math.abs(parseFloat(atRC(pc,totRow.r,32))||0);
+  }
+
+  /* EH&S */
+  var ehsMap={hrs:['Total Hours Worked'],hc:['Average daily headcount'],tbt:['Toolbox talks'],ind:['Safety inductions'],nm:['Near misses'],fa:['First aid'],rc:['Red cards'],yc:['Yellow cards'],lti:['Lost time incidents'],sa:['Safety audits'],sv:['Safety visits']};
+  Object.keys(ehsMap).forEach(function(k){var v=fv(pc,ehsMap[k],10,1);if(v!=='')d.ehs[k]=v;});
+
+  /* RISK REGISTER TAB */
+  var rrs=sheetByName('Risk Register');var rrc=cellList(rrs);
+  d.hasRiskRegister=rrc.length>3;
+  var descCol=-1;
+  rrc.forEach(function(c){if(c.s.toLowerCase().replace(/\s+/g,'').indexOf('riskdescription')>=0&&descCol<0)descCol=c.c;});
+  if(descCol>=0){
+    rrc.forEach(function(c){
+      if(d.risks.length>=8)return;
+      if(c.c===descCol&&c.s.length>10&&c.s.toLowerCase().indexOf('description')<0&&!d.risks.filter(function(x){return x.d===c.s;}).length){
+        var statusCell=rrc.filter(function(x){return x.r===c.r&&(x.c===7||x.c===8);})[0];
+        var isOpen=!statusCell||String(statusCell.v).toLowerCase().indexOf('closed')<0;
+        if(isOpen)d.risks.push({r:'A',d:c.s});
+      }
+    });
+  }
+  if(d.risks.length===0){
+    var issueDesc=pc.filter(function(x){return x.c===46&&x.r>=22&&x.r<=45&&x.s.length>10;});
+    issueDesc.forEach(function(x){
+      if(d.risks.length>=6)return;
+      var rv=pc.filter(function(c){return c.r===x.r&&c.c===67;})[0];
+      d.risks.push({r:toR(rv?rv.v:'A'),d:x.s});
+    });
+  }
+
+  /* ACTION TRACKER TAB */
+  var ats=sheetByName('Action Tracker');var atc=cellList(ats);
+  var actCol=-1;
+  atc.forEach(function(c){if(c.s.toLowerCase()==='action'&&actCol<0)actCol=c.c;});
+  if(actCol>=0){
+    atc.forEach(function(c){
+      if(d.actions.length>=20)return;
+      if(c.c===actCol&&c.s.length>10&&c.s.toLowerCase()!=='action'){
+        var owner=atc.filter(function(x){return x.r===c.r&&x.c===actCol+1;})[0];
+        var complete=atc.filter(function(x){return x.r===c.r&&x.c===6;})[0];
+        d.actions.push({d:c.s,owner:owner?owner.s:'',done:complete?String(complete.v).toLowerCase().indexOf('yes')>=0:false});
+      }
+    });
+  }
+
+  /* DECISION TRACKER TAB */
+  var dts=sheetByName('Decision Tracker');var dtc=cellList(dts);
+  var dCol=-1;
+  dtc.forEach(function(c){if(c.s.toLowerCase()==='decision'&&dCol<0)dCol=c.c;});
+  if(dCol>=0){
+    dtc.forEach(function(c){
+      if(d.decs.length>=10)return;
+      if(c.c===dCol&&c.s.length>10&&c.s.toLowerCase()!=='decision'){
+        var costCell=dtc.filter(function(x){return x.r===c.r&&x.c===6;})[0];
+        d.decs.push({d:c.s,cost:costCell?costCell.v:0,r:'A'});
+      }
+    });
+  }
+
+  /* PROGRESS MINUTES TAB */
+  var pms=sheetByName('Progress Minutes');var pmc=cellList(pms);
+  d.hasProgressMinutes=pmc.length>5;
+
+  return d;
+}
+
+/* ═══ QC ENGINE ═══ */
+function qc(d){
+  var res=QCS.map(function(c){var p=false;try{p=!!c.fn(d);}catch(e){}return{id:c.id,cat:c.cat,crit:c.crit,lbl:c.lbl,fix:c.fix,p:p};});
+  var err=res.filter(function(r){return !r.p&&r.crit;});
+  var wrn=res.filter(function(r){return !r.p&&!r.crit;});
+  return{res:res,err:err,wrn:wrn,ok:err.length===0,score:res.filter(function(r){return r.p;}).length,tot:res.length};
+}
+
+/* ═══ STATE ═══ */
+var S={role:null,pdata:null,pqc:null,photos:[],subs:[],notifs:[],chB:null,chP:null};
+
+function saveSubs(){
+  try{
+    // Strip base64 photos before saving to localStorage to avoid quota overflow
+    var lite=S.subs.map(function(s){
+      var copy=JSON.parse(JSON.stringify(s));
+      if(copy.data&&copy.data.photos)copy.data.photos=copy.data.photos.map(function(p){return p.length>1000?'[photo_stored_idb]':p;});
+      if(copy.photos)copy.photos=copy.photos.map(function(p){return p.length>1000?'[photo_stored_idb]':p;});
+      return copy;
+    });
+    localStorage.setItem('nl_subs',JSON.stringify(lite));
+  }catch(e){
+    toast('Storage full — consider exporting data and clearing old reports','r');
+  }
+}
+function loadSubs(){try{var r=localStorage.getItem('nl_subs');if(r)S.subs=JSON.parse(r);}catch(e){}}
+function saveNotifs(){try{localStorage.setItem('nl_notifs',JSON.stringify(S.notifs));}catch(e){}}
+function loadNotifs(){try{var r=localStorage.getItem('nl_notifs');if(r)S.notifs=JSON.parse(r);}catch(e){}}
+
+function openEmailCfg(){
+  $$('ej-service').value=EJ.service||'';
+  $$('ej-template').value=EJ.template||'';
+  $$('ej-pubkey').value=EJ.pubkey||'';
+  $$('m-email').classList.add('on');
+}
+
+/* ═══ HELPERS ═══ */
+function $$(id){return document.getElementById(id);}
+function fc(n,dp){if(n===null||n===undefined||n==='')return'—';var v=Number(n),a=Math.abs(v),ng=v<0;dp=dp!==undefined?dp:2;var s='£'+a.toFixed(dp)+'m';return ng?'('+s+')':s;}
+function rg(r){if(!r)return'';var l={G:'GREEN',A:'AMBER',R:'RED'};return'<span class="rag '+r+'"><span class="rdot"></span>'+(l[r]||r)+'</span>';}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function uid(){return Date.now()+''+Math.floor(Math.random()*99999);}
+function toast(m,t){var c=$$('toasts'),el=document.createElement('div');el.className='toast t'+(t||'g');el.textContent=m;c.appendChild(el);setTimeout(function(){el.classList.add('out');setTimeout(function(){el.remove();},250);},3500);}
+function fmtDate(d){if(!d)return '';try{return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}catch(e){return d;}}
+
+/* ═══ AUTH ═══ */
+function pickRole(r){
+  _role=r;
+  ['pm','rd','exec'].forEach(function(x){$$('rb-'+x).classList.toggle('on',x===r);});
+  var lbs={pm:'PM ACCESS CODE',rd:'REGIONAL DIRECTOR CODE',exec:'EXECUTIVE ACCESS CODE'};
+  $$('pwlbl').textContent=lbs[r];
+  $$('pwrap').style.display='block';
+  $$('pwin').value='';$$('lerr').style.display='none';$$('lok').style.display='none';
+  $$('lbtngo').disabled=false;
+  setTimeout(function(){$$('pwin').focus();},50);
+}
+$$('pwin').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+
+function doLogin(){
+  if(!_role)return;
+  if(_loginLocked||checkLoginLock())return;
+  var c=$$('pwin').value;
+  if(c!==CODES[_role]){
+    _loginAttempts++;
+    if(checkLoginLock())return;
+    var e=$$('lerr');e.textContent='Incorrect access code. '+( 5-_loginAttempts)+' attempts remaining.';e.style.display='block';
+    $$('pwin').value='';$$('pwin').focus();return;
+  }
+  _loginAttempts=0;
+  $$('lerr').style.display='none';
+  var ok=$$('lok');
+  ok.textContent='Access granted. Welcome, '+{pm:'Project Manager',rd:'Regional Director',exec:'Executive'}[_role]+'.';
+  ok.style.display='block';$$('lbtngo').disabled=true;
+  setTimeout(function(){
+    $$('login').style.display='none';$$('app').style.display='flex';
+    loadSubs();loadNotifs();loadAudit();addAudit('Login',_role);applyRole(_role);
+  },600);
+}
+
+function applyRole(r){
+  S.role=r;
+  $$('uchip').textContent={pm:'PM',rd:'Regional Director',exec:'Executive'}[r];
+  $$('t-submit').style.display=r==='pm'?'':'none';
+  $$('t-approvals').style.display=r==='rd'?'':'none';
+  renderPortfolio();
+  renderNotifs();
+  if(r==='rd'){
+    renderApprovals();
+    var pending=S.subs.filter(function(x){return x.status==='pending';});
+    if(pending.length){$$('abadge').style.display='';nav('approvals');}
+  }
+  if(r==='pm'){renderSubHist();nav('submit');}
+  if(r==='exec'){loadExecOptions();nav('exec');}
+  $$('foot-ts').textContent='Updated: '+new Date().toLocaleString('en-GB');
+  $$('email-status').innerHTML=EJ.enabled?'✉ Email: ON':'⚠ Email: OFF — click to setup';
+  $$('email-status').style.color=EJ.enabled?'var(--ok)':'var(--amber)';
+}
+
+function goHome(){nav('portfolio');}
+function logout(){addAudit('Logout');$$('login').style.display='flex';$$('app').style.display='none';_role=null;S.role=null;_loginAttempts=0;_loginLocked=false;}
+
+function nav(v){
+  document.querySelectorAll('.view').forEach(function(el){el.classList.remove('on');});
+  document.querySelectorAll('.ntab').forEach(function(el){el.classList.remove('on');});
+  $$('view-'+v).classList.add('on');
+  var tab=$$('t-'+v);if(tab)tab.classList.add('on');
+}
+
+/* ═══ PORTFOLIO ═══ */
+function renderPortfolio(){
+  // Clear any existing deadline warnings
+  document.querySelectorAll('[data-deadline-warn]').forEach(function(el){el.remove()});
+  var approved=S.subs.filter(function(x){return x.status==='approved';});
+  var pending=S.subs.filter(function(x){return x.status==='pending';});
+
+  if(approved.length===0&&pending.length===0){
+    $$('site-cards').innerHTML='<div style="text-align:center;padding:30px;color:var(--grey);font-size:13px;">No reports submitted yet. Project Managers can submit POAP reports for review.</div>';
+    return;
+  }
+
+  // Exec users only see approved; PM/RD see all
+  var all=S.role==='exec'?approved:approved.concat(pending);
+  var html='<div style="overflow-x:auto"><table class="nlt"><thead><tr><th>Site</th><th>Status</th><th>PM</th><th>Report Date</th><th>Progress</th><th>Schedule</th><th>Cost</th><th>Budget</th><th>Actions</th></tr></thead><tbody>';
+  all.forEach(function(s){
+    var st=s.status==='approved'?'<span style="color:var(--ok);font-weight:700">✓ Approved</span>':'<span style="color:var(--amber);font-weight:700">⏳ Pending</span>';
+    html+='<tr><td style="font-weight:700">'+s.site+'</td><td>'+st+'</td><td>'+s.pmName+'</td><td>'+fmtDate(s.data.date)+'</td><td>'+rg(s.data.rP)+'</td><td>'+rg(s.data.rS)+'</td><td>'+rg(s.data.rC)+'</td><td>'+fc(s.data.bud/1e6)+'</td>';
+    html+='<td>';
+    if(s.status==='approved')html+='<button class="btn btn-o" style="font-size:10px;padding:3px 8px" onclick="viewApproved(\''+s.id+'\')">View</button>';
+    html+='</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  $$('site-cards').innerHTML=html;
+
+  renderCharts(approved);
+}
+
+function renderCharts(P){
+  if(S.chB){S.chB.destroy();S.chB=null;}
+  if(S.chP){S.chP.destroy();S.chP=null;}
+  if(!P.length)return;
+  if(!$$('ch-bud')||!$$('ch-prg'))return;
+  var labels=P.map(function(s){return s.site;}),buds=P.map(function(s){return(s.data.bud||0)/1e6;}),eacs=P.map(function(s){return(s.data.eac||s.data.bud||0)/1e6;});
+  S.chB=new Chart($$('ch-bud'),{type:'bar',data:{labels:labels,datasets:[{label:'Budget',data:buds,backgroundColor:'#BCD4D0',borderColor:'#003014',borderWidth:1},{label:'EAC',data:eacs,backgroundColor:'rgba(228,32,52,.25)',borderColor:'#E42034',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{callback:function(v){return'£'+v+'m'}}}},plugins:{legend:{labels:{font:{size:10}}}}}});
+  var gn=P.filter(function(s){return s.data.rP==='G';}).length,an=P.filter(function(s){return s.data.rP==='A';}).length,rn=P.filter(function(s){return s.data.rP==='R';}).length;
+  S.chP=new Chart($$('ch-prg'),{type:'doughnut',data:{labels:['Green','Amber','Red'],datasets:[{data:[gn,an,rn],backgroundColor:['#00B050','#FCC000','#E42034']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10}}}}}});
+}
+
+/* ═══ NOTIFICATIONS ═══ */
+function addNotif(msg,type){
+  S.notifs.unshift({msg:msg,type:type||'info',ts:new Date().toISOString()});
+  if(S.notifs.length>20)S.notifs=S.notifs.slice(0,20);
+  saveNotifs();renderNotifs();
+}
+function renderNotifs(){
+  if(!S.notifs.length){$$('notif-panel').style.display='none';return;}
+  $$('notif-panel').style.display='block';
+  var html='';
+  S.notifs.slice(0,5).forEach(function(n){
+    var col=n.type==='approved'?'var(--ok)':n.type==='rejected'?'var(--red)':'var(--risk-a)';
+    html+='<div class="notif-item"><div class="notif-dot" style="background:'+col+'"></div><div class="notif-text">'+n.msg+'</div><div class="notif-time">'+fmtDate(n.ts)+'</div></div>';
+  });
+  $$('notif-list').innerHTML=html;
+}
+
+/* ═══ FILE UPLOAD ═══ */
+function dropFile(e){e.preventDefault();if(e.dataTransfer.files.length)processFile(e.dataTransfer.files[0]);}
+function fileChosen(i){if(i.files.length)processFile(i.files[0]);}
+
+function processFile(f){
+  if(!f.name.match(/\.(xlsx|xlsm|xls)$/i)){toast('Please upload an Excel file (.xlsx)','r');return;}
+  if(f.size>25*1024*1024){toast('File too large (max 25MB). Please reduce file size.','r');return;}
+  $$('file-info').innerHTML='<strong>'+f.name+'</strong> ('+Math.round(f.size/1024)+'KB) — Processing...';
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      // Verify required tabs exist
+      var tabNames=wb.SheetNames.map(function(n){return n.toLowerCase();});
+      if(!tabNames.some(function(t){return t.indexOf('poap')>=0;})){
+        toast('Missing POAP tab — please check your Excel file has the correct template format','r');
+        $$('file-info').innerHTML='<span style="color:#C0392B">Error: No POAP tab found. Tabs present: '+wb.SheetNames.join(', ')+'</span>';
+        return;
+      }
+      var d=parsePOAP(wb);
+      S.pdata=d;
+      var qr=qc(d);
+      S.pqc=qr;
+      renderQC(qr);
+      if(qr.ok){
+        $$('submit-card').style.display='block';
+        $$('file-info').innerHTML='<strong>'+f.name+'</strong> — ✓ Parsed successfully ('+d.ms.length+' milestones, '+d.risks.length+' risks, '+d.actions.length+' actions, '+d.decs.length+' decisions)';
+        toast('POAP parsed and QC passed! Ready to submit.','g');
+      }else{
+        $$('submit-card').style.display='none';
+        $$('file-info').innerHTML='<strong>'+f.name+'</strong> — ⚠ QC issues found. Please fix and re-upload.';
+        toast('QC failed: '+qr.err.length+' critical issues found','r');
+      }
+    }catch(err){
+      toast('Error reading file: '+err.message,'r');
+      $$('file-info').innerHTML='Error processing file.';
+    }
+  };
+  reader.readAsArrayBuffer(f);
+}
+
+function renderQC(qr){
+  $$('qc-card').style.display='block';
+  var cats=['Identity','Programme','Cost','Narrative','Risk','EH&S','Tabs'];
+  var pipeHtml='';
+  cats.forEach(function(cat){
+    var items=qr.res.filter(function(r){return r.cat===cat;});
+    var allPass=items.every(function(r){return r.p;});
+    var anyFail=items.some(function(r){return !r.p&&r.crit;});
+    var cls=allPass?'pass':(anyFail?'fail':'active');
+    var icon=allPass?'✓':(anyFail?'✗':'⚠');
+    pipeHtml+='<div class="qcstep '+cls+'"><span class="qcicon">'+icon+'</span>'+cat+'</div>';
+  });
+  $$('qcpipe').innerHTML=pipeHtml;
+
+  var detHtml='<div style="margin-top:10px"><table class="nlt"><thead><tr><th>Check</th><th>Category</th><th>Critical</th><th>Result</th><th>Fix</th></tr></thead><tbody>';
+  qr.res.forEach(function(r){
+    var st=r.p?'<span style="color:var(--ok);font-weight:700">✓ PASS</span>':'<span style="color:'+(r.crit?'#C0392B':'var(--amber)')+';font-weight:700">'+(r.crit?'✗ FAIL':'⚠ WARN')+'</span>';
+    detHtml+='<tr style="background:'+(r.p?'':'rgba(252,192,0,.05)')+'"><td>'+r.lbl+'</td><td>'+r.cat+'</td><td>'+(r.crit?'Yes':'No')+'</td><td>'+st+'</td><td style="font-size:10px;color:var(--grey)">'+(r.p?'':r.fix)+'</td></tr>';
+  });
+  detHtml+='</tbody></table></div>';
+  detHtml+='<div style="margin-top:10px;padding:8px 12px;border-radius:5px;font-size:12px;font-weight:700;background:'+(qr.ok?'#E8F5E9;color:#1B7A2B':'#FFEBEE;color:#C0392B')+'">Score: '+qr.score+'/'+qr.tot+(qr.ok?' — Ready to submit':' — '+qr.err.length+' critical issues must be fixed')+'</div>';
+  $$('qc-results').innerHTML=detHtml;
+}
+
+/* ═══ PHOTOS ═══ */
+function addPhotos(inp){
+  Array.from(inp.files).forEach(function(f){
+    if(!f.type.startsWith('image/'))return;
+    var reader=new FileReader();
+    reader.onload=function(e){
+      // Keep high resolution — only compress if over 4MB
+      if(e.target.result.length>4*1024*1024){
+        compressPhoto(e.target.result,function(compressed){S.photos.push(compressed);renderPhotos();});
+      }else{
+        S.photos.push(e.target.result);renderPhotos();
+      }
+    };
+    reader.readAsDataURL(f);
+  });
+  inp.value='';
+}
+function compressPhoto(dataUrl,cb){
+  var img=new Image();img.onload=function(){
+    var c=document.createElement('canvas'),mx=2400;
+    var w=img.width,h=img.height;
+    if(w>mx||h>mx){var sc=mx/Math.max(w,h);w*=sc;h*=sc;}
+    c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+    cb(c.toDataURL('image/jpeg',0.88));
+  };img.src=dataUrl;
+}
+function renderPhotos(){
+  $$('ph-prev').innerHTML=S.photos.map(function(s,i){
+    return'<div class="photo-card"><img src="'+s+'" onclick="openFullPhoto(\''+i+'\')"><button class="photo-del" onclick="S.photos.splice('+i+',1);renderPhotos();">×</button></div>';
+  }).join('');
+}
+function openFullPhoto(idx){
+  var src=S.photos[idx];
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  ov.onclick=function(){document.body.removeChild(ov);};
+  var img=document.createElement('img');img.src=src;
+  img.style.cssText='max-width:94vw;max-height:94vh;object-fit:contain;border-radius:4px;box-shadow:0 20px 60px rgba(0,0,0,.5)';
+  ov.appendChild(img);document.body.appendChild(ov);
+}
+
+/* ═══ PM PREVIEW ═══ */
+function togglePMPreview(){
+  var p=$$('pm-preview'),b=$$('pm-prev-btn');
+  if(p.style.display==='none'){
+    p.style.display='block';b.textContent='Hide Preview ▲';
+    if(S.pdata){S.pdata.photos=S.photos;p.innerHTML=buildExecSummary(S.pdata);}
+  }else{p.style.display='none';b.textContent='Show Executive Summary Preview ▼';}
+}
+
+/* ═══ SUBMIT ═══ */
+function submitReport(){
+  if(!S.pdata||!S.pqc||!S.pqc.ok){toast('Please upload and pass QC first','r');return;}
+  var name=$$('pm-name').value.trim(),email=$$('pm-email').value.trim(),site=$$('pm-site').value;
+  if(!name){toast('Please enter your name','r');return;}
+  if(!site){toast('Please select a site','r');return;}
+  if(!email||email.indexOf('@')<1){toast('Please enter a valid email address','r');return;}
+
+  // Duplicate check — warn if same site already pending
+  var existing=S.subs.filter(function(x){return x.site===site&&x.status==='pending';});
+  if(existing.length&&!confirm('A pending report for '+site+' already exists. This will replace it. Continue?'))return;
+
+  S.pdata.photos=S.photos;
+  var sub={
+    id:uid(),site:site,pmName:name,pmEmail:email,
+    status:'pending',ts:new Date().toISOString(),
+    data:S.pdata,qc:S.pqc,photos:S.photos
+  };
+
+  // Remove any previous pending for same site
+  S.subs=S.subs.filter(function(x){return !(x.site===site&&x.status==='pending');});
+  S.subs.push(sub);
+  saveSubs();
+
+  addNotif(name+' submitted '+site+' POAP for review','pending');
+  addAudit('POAP submitted',site+' by '+name);
+  toast('Report submitted to '+RD_NAME+' for approval!','g');
+
+  // Send email notification to RD
+  sendAutoEmail('submitted',sub);
+
+  // Reset form
+  S.pdata=null;S.pqc=null;S.photos=[];
+  $$('qc-card').style.display='none';$$('submit-card').style.display='none';
+  $$('file-info').innerHTML='';$$('ph-prev').innerHTML='';$$('pm-preview').style.display='none';
+  renderSubHist();renderPortfolio();
+}
+
+function renderSubHist(){
+  var html='';
+  var myName=$$('pm-name').value.trim();
+  var relevant=myName?S.subs.filter(function(x){return x.pmName===myName;}):S.subs;
+  if(!relevant.length){html='<div style="color:var(--grey);font-size:12px;padding:10px">No submissions yet.</div>';$$('sub-hist').innerHTML=html;return;}
+
+  html='<table class="nlt"><thead><tr><th>Site</th><th>Date</th><th>Status</th><th>QC Score</th><th>Actions</th></tr></thead><tbody>';
+  relevant.slice().reverse().forEach(function(s){
+    var stHtml=s.status==='approved'?'<span style="color:var(--ok)">✓ Approved</span>':s.status==='rejected'?'<span style="color:#C0392B">↩ Amendments Requested</span>':'<span style="color:var(--amber)">⏳ Pending Review</span>';
+    html+='<tr><td style="font-weight:700">'+s.site+'</td><td>'+fmtDate(s.ts)+'</td><td>'+stHtml+'</td><td>'+s.qc.score+'/'+s.qc.tot+'</td>';
+    html+='<td>';
+    if(s.status==='rejected'&&s.comments)html+='<div style="font-size:10px;color:#C0392B;margin-top:2px">Comments: '+s.comments+'</div><button class="btn btn-o" style="font-size:10px;padding:3px 8px;margin-top:4px" onclick="startResubmit(\''+s.id+'\')">↩ Resubmit</button>';
+    html+='</td></tr>';
+  });
+  html+='</tbody></table>';
+  $$('sub-hist').innerHTML=html;
+}
+
+/* ═══ APPROVALS (RD) ═══ */
+function renderApprovals(){
+  var pending=S.subs.filter(function(x){return x.status==='pending';});
+  $$('abadge').style.display=pending.length?'':'none';
+  if(!pending.length){
+    $$('approval-list').innerHTML='<div class="card"><div style="text-align:center;padding:20px;color:var(--grey)">No reports awaiting approval.</div></div>';
+    return;
+  }
+  var html='';
+  pending.forEach(function(s){
+    html+='<div class="card"><div class="shdr amber">'+s.site+' — Submitted by '+s.pmName+' · '+fmtDate(s.ts)+'</div>';
+    html+='<div style="margin-bottom:10px;font-size:12px"><strong>QC Score:</strong> '+s.qc.score+'/'+s.qc.tot+' · <strong>Progress:</strong> '+rg(s.data.rP)+' · <strong>Schedule:</strong> '+rg(s.data.rS)+' · <strong>Cost:</strong> '+rg(s.data.rC)+'</div>';
+
+    // Inline preview
+    html+='<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;max-height:500px;overflow-y:auto">'+buildExecSummary(s.data)+'</div>';
+
+    html+='<div style="display:flex;gap:8px;justify-content:flex-end">';
+    html+='<button class="btn btn-ok" onclick="openM(\'m-approve\',\''+s.id+'\')">✓ Approve & Publish</button>';
+    html+='<button class="btn btn-rj" onclick="openM(\'m-reject\',\''+s.id+'\')">↩ Request Amendments</button>';
+    html+='</div></div>';
+  });
+  $$('approval-list').innerHTML=html;
+}
+
+function openM(id,aid){_aid=aid;$$(id).classList.add('on');}
+function closeM(id){$$(id).classList.remove('on');_aid=null;}
+
+function doApprove(){
+  var s=S.subs.filter(function(x){return x.id===_aid;})[0];
+  if(s){
+    s.status='approved';s.approvedBy=RD_NAME;s.approvedTs=new Date().toISOString();
+    addAudit('Report approved',s.site);
+    addNotif(s.site+' approved by '+RD_NAME+'. Executive summary published.','approved');
+  }
+  saveSubs();closeM('m-approve');
+  toast('Report approved and published. PM notified.','g');
+  sendAutoEmail('approved',s);
+  renderApprovals();renderPortfolio();loadExecOptions();
+}
+
+function doReject(){
+  var c=$$('rjtxt').value.trim();
+  if(!c){toast('Please enter your comments.','r');return;}
+  var s=S.subs.filter(function(x){return x.id===_aid;})[0];
+  if(s){
+    s.status='rejected';s.comments=c;
+    addAudit('Report rejected',s.site+': '+c);
+    addNotif(s.site+' returned to '+s.pmName+' with comments: "'+c+'"','rejected');
+  }
+  saveSubs();$$('rjtxt').value='';closeM('m-reject');
+  toast('Report returned to PM with your comments.','a');
+  sendAutoEmail('rejected',s);
+  renderApprovals();renderPortfolio();
+}
+
+/* ═══ EXECUTIVE SUMMARY VIEW ═══ */
+function loadExecOptions(){
+  var sel=$$('exec-site-sel');
+  sel.innerHTML='<option value="">— Select approved report —</option>';
+  var approved=S.subs.filter(function(x){return x.status==='approved';});
+  if(approved.length>1)sel.innerHTML+='<option value="ALL">📊 All Sites — Regional Overview (19 Mar)</option>';
+  approved.forEach(function(s){
+    sel.innerHTML+='<option value="'+s.id+'">'+s.site+' — '+fmtDate(s.data.date)+' (by '+s.pmName+')</option>';
+  });
+  if(approved.length>1){loadExecSite('ALL');}
+  else if(approved.length===1){loadExecSite(approved[0].id);}
+}
+
+function loadExecSite(id){
+  if(!id){$$('exec-report').innerHTML='';$$('share-panel').style.display='none';$$('exec-stamp').innerHTML='';return;}
+
+  if(id==='ALL'){
+    $$('exec-stamp').innerHTML='<span class="approved">✓ APPROVED by Sam Hill · 19 Mar 2026</span>';
+    $$('exec-report').innerHTML=buildRegionalOverview();
+    $$('share-panel').style.display='block';
+    $$('share-url').value=window.location.href.split('?')[0]+'?view=exec';
+    $$('exec-site-sel').value='ALL';
+    return;
+  }
+
+  var s=S.subs.filter(function(x){return x.id===id;})[0];
+  if(!s)return;
+  $$('exec-stamp').innerHTML='<span class="approved">✓ APPROVED by '+RD_NAME+' · '+(s.approvedTs?fmtDate(s.approvedTs):'')+'</span>';
+  $$('exec-report').innerHTML=buildExecSummary(s.data);
+  $$('share-panel').style.display='block';
+  $$('share-url').value=window.location.href.split('?')[0]+'?view=exec&site='+s.site;
+  $$('exec-site-sel').value=id;
+}
+
+function buildRegionalOverview(){
+  var approved=S.subs.filter(function(x){return x.status==='approved';});
+
+  /* ── PAGE 1: Regional Cover ── */
+  var cover='<div class="exec-page" style="padding:0">'
+    +'<div style="background:var(--green);padding:24px 24px 18px;text-align:center">'
+    +'<div style="font-size:10px;color:rgba(255,255,255,.5);font-weight:700;letter-spacing:.2em;margin-bottom:4px">CONSTRUCTION 2026</div>'
+    +'<div style="font-size:24px;font-weight:800;color:#fff;margin-bottom:2px">Construction Update — UK</div>'
+    +'<div style="font-size:12px;color:rgba(255,255,255,.6)">Date: 19th March 2026 · Interim Regional Construction Lead: Sam Hill · Regional MD: Justin Nesbitt</div>'
+    +'</div>';
+
+  /* Programme Overview Table — matching PPTX slide 2 */
+  cover+='<div style="padding:16px 18px"><div style="background:var(--teal);padding:6px 12px;font-size:10px;font-weight:700;letter-spacing:.04em;border-radius:4px 4px 0 0">PROGRAMME OVERVIEW: UK</div>'
+    +'<div style="overflow-x:auto"><table class="nlt"><thead><tr><th>Site</th><th>Phase / MW</th><th>PM</th><th>IC Level</th><th>Budget</th><th>EAC</th><th>2026 Plan RFS</th><th>Forecast RFS</th><th>Progress</th><th>Schedule</th><th>Cost</th></tr></thead><tbody>';
+
+  approved.forEach(function(s){
+    var d=s.data;
+    cover+='<tr style="cursor:pointer" onclick="loadExecSite(\''+s.id+'\')">'
+      +'<td style="font-weight:700;color:var(--green)">'+s.site+'</td>'
+      +'<td>PH1 '+d.mw+'</td>'
+      +'<td style="font-size:10px">'+d.pm+'</td>'
+      +'<td>'+d.ic+'</td>'
+      +'<td style="text-align:right">£'+(d.bud/1e6).toFixed(1)+'m</td>'
+      +'<td style="text-align:right;font-weight:700;color:'+(d.eac>d.bud?'#C0392B':'var(--ok)')+'">£'+(d.eac/1e6).toFixed(1)+'m</td>'
+      +'<td style="text-align:center">'+d.rfb+'</td>'
+      +'<td style="text-align:center;font-weight:700;color:'+(d.rff!==d.rfb&&d.rff!=='TBC'?'#C0392B':'var(--ok)')+'">'+d.rff+'</td>'
+      +'<td>'+rg(d.rP)+'</td><td>'+rg(d.rS)+'</td><td>'+rg(d.rC)+'</td></tr>';
+  });
+
+  // Totals row
+  var totBud=approved.reduce(function(a,s){return a+s.data.bud;},0);
+  var totEac=approved.reduce(function(a,s){return a+s.data.eac;},0);
+  cover+='<tr style="font-weight:700;background:var(--teal3)"><td colspan="4">TOTAL UK PORTFOLIO</td>'
+    +'<td style="text-align:right">£'+(totBud/1e6).toFixed(1)+'m</td>'
+    +'<td style="text-align:right;color:'+(totEac>totBud?'#C0392B':'var(--ok)')+'">£'+(totEac/1e6).toFixed(1)+'m</td>'
+    +'<td colspan="5"></td></tr>';
+
+  cover+='</tbody></table></div></div>';
+
+  /* Cross-site risks */
+  var allRisks=[];
+  approved.forEach(function(s){
+    (s.data.risks||[]).forEach(function(rk){
+      if(rk.r==='R')allRisks.push({site:s.site,d:rk.d});
+    });
+  });
+  if(allRisks.length){
+    cover+='<div style="padding:0 18px 16px"><div style="background:var(--red);padding:6px 12px;font-size:10px;font-weight:700;color:#fff;letter-spacing:.04em;border-radius:4px 4px 0 0">PORTFOLIO RED RISKS</div>'
+      +'<div style="border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px;padding:8px 12px">';
+    allRisks.forEach(function(rk,i){
+      cover+='<div style="display:flex;gap:8px;margin-bottom:5px"><span style="font-weight:700;color:var(--red);flex-shrink:0;font-size:11px">'+rk.site+'</span><span style="font-size:11px;color:var(--body)">'+rk.d+'</span></div>';
+    });
+    cover+='</div></div>';
+  }
+
+  /* Key decisions */
+  var allDecs=[];
+  approved.forEach(function(s){if(s.data.dectxt)allDecs.push({site:s.site,d:s.data.dectxt});});
+  if(allDecs.length){
+    cover+='<div style="padding:0 18px 18px"><div style="background:var(--risk-a);padding:6px 12px;font-size:10px;font-weight:700;letter-spacing:.04em;border-radius:4px 4px 0 0">EXCO DECISIONS REQUIRED</div>'
+      +'<div style="border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px;padding:8px 12px">';
+    allDecs.forEach(function(dc){
+      cover+='<div style="margin-bottom:5px"><span style="font-weight:700;color:var(--amber);font-size:11px">'+dc.site+': </span><span style="font-size:11px">'+dc.d+'</span></div>';
+    });
+    cover+='</div></div>';
+  }
+
+  cover+='</div>';
+
+  /* ── Individual site pages ── */
+  var sitePages='';
+  approved.forEach(function(s){
+    sitePages+=buildExecSummary(s.data);
+  });
+
+  return cover+sitePages;
+}
+
+function viewApproved(id){
+  nav('exec');loadExecSite(id);
+}
+
+/* ═══ EXEC SUMMARY BUILDER (2-page layout matching PPTX) ═══ */
+function buildExecSummary(d){
+  var ragBg=d.rP==='R'?'#C0392B':d.rP==='A'?'var(--amber)':'var(--green)';
+
+  // ── PAGE 1: HEADER + KPIs + PROGRESS ──
+  var hdr='<div style="background:'+ragBg+';padding:12px 18px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">'
+    +'<div style="flex:1"><div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:2px">'+(d.name||'Project Report')+(d.mw?' ('+d.mw+')':'')+' Update</div>'
+    +'<div style="font-size:10px;color:rgba(255,255,255,.7)">'+(d.stage||'')+(d.ic?' · '+d.ic:'')+(d.rno?' · Report #'+d.rno:'')+'</div></div>'
+    +'<div style="display:flex;gap:18px;flex-wrap:wrap">'
+    +[['Baseline RFS',d.rfb||'—'],['Forecast RFS',d.rff||d.rfb||'—'],['Report Date',d.date||'—']].map(function(x){
+      return'<div style="text-align:center"><div style="font-size:8px;color:rgba(255,255,255,.5);font-weight:700;letter-spacing:.06em;margin-bottom:1px">'+x[0].toUpperCase()+'</div><div style="font-size:13px;font-weight:800;color:#fff">'+x[1]+'</div></div>';
+    }).join('<div style="width:1px;height:28px;background:rgba(255,255,255,.2);align-self:center"></div>')
+    +'</div></div>';
+
+  // KPI bar
+  var budVal=d.bud>0?'£'+(d.bud/1e6).toFixed(2)+'m':'—';
+  var eacVal=d.eac&&d.eac>0?'£'+(d.eac/1e6).toFixed(2)+'m':budVal;
+  var kbar='<div style="background:var(--teal);padding:7px 18px;display:flex;gap:18px;flex-wrap:wrap;align-items:center;border-bottom:2px solid rgba(0,48,20,.15)">'
+    +[['PM',d.pm||'—'],['IC Level',d.ic||'—'],['Budget',budVal],['EAC',eacVal]].map(function(x){
+      return'<div><div style="font-size:7px;color:var(--green);font-weight:700;letter-spacing:.06em;opacity:.7;margin-bottom:1px">'+x[0].toUpperCase()+'</div><div style="font-size:12px;font-weight:700;color:var(--green)">'+x[1]+'</div></div>';
+    }).join('')
+    +'<div style="flex:1"></div>'
+    +[['HSE',d.hse||'Ok'],['FoH',d.foh||'—'],['Legal',d.legal||'Ok']].map(function(x){
+      var c=(x[1]==='Ok'||x[1]==='Complete'||x[1]==='OK'||x[1]==='Completed')?'var(--ok)':'var(--green)';
+      return'<div><div style="font-size:7px;color:var(--green);font-weight:700;letter-spacing:.06em;opacity:.7;margin-bottom:1px">'+x[0].toUpperCase()+'</div><div style="font-size:12px;font-weight:700;color:'+c+'">'+x[1]+'</div></div>';
+    }).join('')+'</div>';
+
+  // RAG row
+  var ragRow='<div style="background:var(--teal3);padding:6px 18px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border)">'
+    +[['Progress',d.rP],['Schedule',d.rS],['Cost',d.rC],['OFCI',d.rO],['Risks',d.rK],['EH&S',d.rE]].map(function(x){
+      return'<div><div style="font-size:7px;color:var(--grey);font-weight:700;letter-spacing:.06em;margin-bottom:2px">'+x[0].toUpperCase()+'</div>'+rg(x[1])+'</div>';
+    }).join('')+'</div>';
+
+  function sect(title,content,accent){
+    if(!content||!content.trim())return'';
+    var bg=accent||'var(--teal)';
+    return'<div style="margin-bottom:0"><div style="background:'+bg+';padding:5px 12px;font-size:9px;font-weight:700;color:'+(accent&&accent!=='var(--teal)'?'#fff':'var(--body)')+';letter-spacing:.04em">'+title+'</div>'
+      +'<div style="padding:8px 12px;font-size:11px;color:var(--body);line-height:1.7;border-bottom:1px solid var(--teal3)">'+content.replace(/\n/g,'<br>')+'</div></div>';
+  }
+
+  var body='';
+
+  // Left column: operational content
+  var leftCol=sect('KEY DECISIONS REQUIRED',d.dectxt,'var(--amber)')
+    +sect('PROJECT DESCRIPTION',d.stage?'Phase to deliver '+d.mw+'. Stage: '+d.stage:'')
+    +sect('COMPLETED WORKS / PROGRESS SUMMARY',d.sum)
+    +sect('UPCOMING WORKS',d.upc);
+
+  // Right column: strategic info (IC, Permitting, Utility, OFCI, Future) — like PPTX
+  var rightCol=''
+    +(d.icStatus?sect('IC STATUS',d.icStatus):'')
+    +(d.permitting?sect('PERMITTING',d.permitting):'')
+    +(d.utility?sect('UTILITY',d.utility):'')
+    +(d.ofciStatus?sect('OFCI',d.ofciStatus):'')
+    +(d.futurePhases?sect('FUTURE PHASES',d.futurePhases):'');
+
+  if(rightCol.trim()){
+    body='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border)">'
+      +'<div style="border-right:1px solid var(--border)">'+leftCol+'</div>'
+      +'<div>'+rightCol+'</div></div>';
+  } else {
+    body='<div style="border:1px solid var(--border)">'+leftCol+'</div>';
+  }
+
+  // Risks
+  var risksHtml='';
+  if(d.risks&&d.risks.length){
+    risksHtml='<div style="margin-bottom:0"><div style="background:var(--teal);padding:5px 12px;font-size:9px;font-weight:700;color:var(--body);letter-spacing:.04em">RISKS & ISSUES</div>'
+      +'<div style="padding:8px 12px;border-bottom:1px solid var(--teal3)">'
+      +d.risks.slice(0,5).map(function(rk,i){
+        var c=rk.r==='R'?'var(--risk-r)':rk.r==='A'?'var(--risk-a)':'var(--ok)';
+        return'<div style="display:flex;gap:8px;margin-bottom:5px"><span style="font-size:11px;font-weight:700;color:'+c+';flex-shrink:0">'+(i+1)+'.</span><span style="font-size:11px;line-height:1.55;color:var(--body)">'+rk.d+'</span></div>';
+      }).join('')+'</div></div>';
+  }
+
+  // ── PAGE 2: MILESTONES + EH&S + PHOTOS ──
+  var msHtml='';
+  if(d.ms&&d.ms.length){
+    msHtml='<div style="margin-bottom:0"><div style="background:var(--teal);padding:5px 12px;font-size:9px;font-weight:700;color:var(--body);letter-spacing:.04em">SCHEDULE UPDATE</div>'
+      +'<div style="overflow-x:auto"><table class="nlt"><thead><tr><th>#</th><th>Milestone</th><th>Baseline</th><th>Forecast</th><th>Status</th></tr></thead><tbody>'
+      +d.ms.map(function(m,i){
+        var delayed=m.b&&m.f&&m.b!==m.f;
+        return'<tr><td>'+(i+1)+'</td><td>'+m.n+'</td><td style="color:var(--grey)">'+(m.b||'—')+'</td><td style="font-weight:700;color:'+(delayed?'#C0392B':'var(--ok)')+';">'+(m.f||'—')+'</td><td style="color:'+(delayed?'#C0392B':'var(--ok)')+'">'+(delayed?'⚠ Delayed':'✓ On Track')+'</td></tr>';
+      }).join('')+'</tbody></table></div></div>';
+  }
+
+  // EH&S
+  var ehsHtml='';
+  if(d.ehs&&Object.keys(d.ehs).length){
+    var ehsLabels={hrs:'Total Hours Worked',hc:'Avg Daily Headcount',tbt:'Toolbox Talks',ind:'Safety Inductions',nm:'Near Misses',fa:'First Aid',rc:'Red Cards',yc:'Yellow Cards',lti:'Lost Time Incidents',sa:'Safety Audits',sv:'Safety Visits'};
+    ehsHtml='<div style="margin-bottom:0"><div style="background:var(--teal);padding:5px 12px;font-size:9px;font-weight:700;color:var(--body);letter-spacing:.04em">ENVIRONMENTAL, HEALTH & SAFETY</div>'
+      +'<div style="padding:8px 12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">'
+      +Object.keys(d.ehs).map(function(k){
+        var v=d.ehs[k];var isAlert=(k==='nm'||k==='lti'||k==='rc')&&Number(v)>0;
+        return'<div style="background:'+(isAlert?'#FFEBEE':'var(--teal3)')+';padding:8px 10px;border-radius:4px;text-align:center"><div style="font-size:18px;font-weight:800;color:'+(isAlert?'#C0392B':'var(--green)')+'">'+v+'</div><div style="font-size:8px;font-weight:700;color:var(--grey);letter-spacing:.04em">'+(ehsLabels[k]||k).toUpperCase()+'</div></div>';
+      }).join('')+'</div></div>';
+  }
+
+  // Photos
+  var photosHtml='';
+  if(d.photos&&d.photos.length){
+    photosHtml='<div style="margin-bottom:0"><div style="background:var(--green);padding:5px 12px;font-size:9px;font-weight:700;color:var(--white);letter-spacing:.04em">SITE PROGRESS PHOTOS</div>'
+      +'<div style="padding:10px 12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">'
+      +d.photos.map(function(src){return'<img src="'+src+'" style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer" onclick="openFullPhoto2(this.src)">';}).join('')
+      +'</div></div>';
+  }
+
+  // Cost breakdown
+  var costHtml='';
+  if(d.cl&&d.cl.length){
+    costHtml='<div style="margin-bottom:0"><div style="background:var(--teal);padding:5px 12px;font-size:9px;font-weight:700;color:var(--body);letter-spacing:.04em">COST PLAN</div>'
+      +'<div style="overflow-x:auto"><table class="nlt"><thead><tr><th>Category</th><th>Business Case (£)</th><th>Commitments (£)</th></tr></thead><tbody>'
+      +d.cl.map(function(c){return'<tr><td>'+c.cat+'</td><td style="text-align:right">'+Number(c.bud).toLocaleString('en-GB')+'</td><td style="text-align:right">'+Number(c.com).toLocaleString('en-GB')+'</td></tr>';}).join('')
+      +'<tr style="font-weight:700;background:var(--teal3)"><td>TOTALS</td><td style="text-align:right">'+d.cl.reduce(function(a,c){return a+c.bud;},0).toLocaleString('en-GB')+'</td><td style="text-align:right">'+d.cl.reduce(function(a,c){return a+c.com;},0).toLocaleString('en-GB')+'</td></tr>'
+      +'</tbody></table></div></div>';
+  }
+
+  // Actions summary
+  var actHtml='';
+  if(d.actions&&d.actions.length){
+    var openActs=d.actions.filter(function(a){return !a.done;});
+    actHtml='<div style="margin-bottom:0"><div style="background:var(--teal);padding:5px 12px;font-size:9px;font-weight:700;color:var(--body);letter-spacing:.04em">OPEN ACTIONS ('+openActs.length+' of '+d.actions.length+')</div>'
+      +'<div style="padding:8px 12px;font-size:11px">'
+      +openActs.slice(0,8).map(function(a,i){
+        return'<div style="margin-bottom:4px;display:flex;gap:6px"><span style="color:var(--amber);font-weight:700">'+(i+1)+'.</span><span>'+a.d+(a.owner?' <em style="color:var(--grey)">— '+a.owner+'</em>':'')+'</span></div>';
+      }).join('')+'</div></div>';
+  }
+
+  // Assemble pages
+  var page1='<div class="exec-page">'+hdr+kbar+ragRow+body+risksHtml+'</div>';
+  var page2='<div class="exec-page">'+msHtml+costHtml+ehsHtml+actHtml+photosHtml+'</div>';
+
+  return page1+page2;
+}
+
+function openFullPhoto2(src){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  ov.onclick=function(){document.body.removeChild(ov);};
+  var img=document.createElement('img');img.src=src;
+  img.style.cssText='max-width:94vw;max-height:94vh;object-fit:contain;border-radius:4px;box-shadow:0 20px 60px rgba(0,0,0,.5)';
+  ov.appendChild(img);document.body.appendChild(ov);
+}
+
+/* ═══ SHARE ═══ */
+function copyLink(){var i=$$('share-url');i.select();try{document.execCommand('copy');}catch(e){}var ok=$$('cok');ok.style.display='';setTimeout(function(){ok.style.display='none';},2500);}
+function mailSummary(){
+  var url=$$('share-url').value;
+  window.open('mailto:?subject='+encodeURIComponent('nLighten UK Construction Executive Summary')+'&body='+encodeURIComponent('View the approved executive summary:\n\n'+url+'\n\nLogin: Executive\nCode: nLighten-Exec\n\nPrepared by: '+RD_NAME+'\nDate: '+REPORT_DATE+'\n\nnLighten Confidential'));
+}
+
+/* ═══ EXPORT / IMPORT ═══ */
+function exportState(){
+  var payload={version:'v21',ts:new Date().toISOString(),subs:S.subs,notifs:S.notifs};
+  var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nlighten-dashboard-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  toast('Data exported','g');
+}
+function importState(inp){
+  if(!inp.files.length)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var data=JSON.parse(e.target.result);
+      if(data.subs){
+        // Merge — keep newer versions of same ID
+        var existing={};S.subs.forEach(function(s){existing[s.id]=s;});
+        data.subs.forEach(function(s){existing[s.id]=s;});
+        S.subs=Object.values(existing);
+        saveSubs();
+      }
+      if(data.notifs){S.notifs=data.notifs;saveNotifs();}
+      toast('Data imported successfully','g');
+      applyRole(S.role||_role);
+    }catch(err){toast('Invalid file format','r');}
+  };
+  reader.readAsText(inp.files[0]);inp.value='';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EMAIL NOTIFICATION SYSTEM (EmailJS)
+   Setup: 1) Create free account at emailjs.com
+          2) Create a service (Gmail/Outlook)
+          3) Create a template with variables: {{to_email}}, {{to_name}}, {{subject}}, {{message}}, {{site}}, {{status}}
+          4) Enter your IDs in the Email Config panel (gear icon)
+   ═══════════════════════════════════════════════════════════ */
+var EJ={service:'',template:'',pubkey:'',enabled:false};
+
+(function loadEmailConfig(){
+  try{
+    var raw=localStorage.getItem('nl_emailjs');
+    if(raw){EJ=JSON.parse(raw);EJ.enabled=!!(EJ.service&&EJ.template&&EJ.pubkey);}
+  }catch(e){}
+})();
+
+function saveEmailConfig(){
+  EJ.service=$$('ej-service').value.trim();
+  EJ.template=$$('ej-template').value.trim();
+  EJ.pubkey=$$('ej-pubkey').value.trim();
+  EJ.enabled=!!(EJ.service&&EJ.template&&EJ.pubkey);
+  localStorage.setItem('nl_emailjs',JSON.stringify(EJ));
+  if(EJ.enabled){
+    try{emailjs.init(EJ.pubkey);}catch(e){}
+    toast('Email notifications enabled','g');
+  }else{
+    toast('Email config saved (incomplete — notifications disabled)','a');
+  }
+  closeM('m-email');
+}
+
+function sendAutoEmail(event,sub){
+  if(!sub)return;
+  // Always open mailto: fallback
+  var subjects={
+    submitted:'New POAP Submission: '+sub.site+' — Review Required',
+    approved:'POAP Approved: '+sub.site+' — Executive Summary Published',
+    rejected:'POAP Amendments Required: '+sub.site
+  };
+  var bodies={
+    submitted:'Hi '+RD_NAME+',\n\n'+sub.pmName+' has submitted a POAP report for '+sub.site+'.\n\nQC Score: '+sub.qc.score+'/'+sub.qc.tot+'\nProgress: '+(sub.data.rP==='G'?'Green':sub.data.rP==='A'?'Amber':'Red')+'\nSchedule: '+(sub.data.rS==='G'?'Green':sub.data.rS==='A'?'Amber':'Red')+'\n\nPlease log in as Regional Director to review and approve.\n\nnLighten UK Construction Dashboard',
+    approved:'Hi '+sub.pmName+',\n\nYour POAP report for '+sub.site+' has been approved by '+RD_NAME+'.\n\nThe executive summary is now published and visible to all Executive users.\n\nnLighten UK Construction Dashboard',
+    rejected:'Hi '+sub.pmName+',\n\nYour POAP report for '+sub.site+' has been returned with the following comments:\n\n"'+(sub.comments||'')+'"\n\nPlease make the requested amendments and resubmit.\n\nnLighten UK Construction Dashboard'
+  };
+  var toEmail=event==='submitted'?RD_EMAIL:(sub.pmEmail||'');
+  var toName=event==='submitted'?RD_NAME:sub.pmName;
+
+  // Try EmailJS first
+  if(EJ.enabled&&toEmail){
+    try{
+      emailjs.send(EJ.service,EJ.template,{
+        to_email:toEmail,to_name:toName,
+        subject:subjects[event]||'nLighten Dashboard Notification',
+        message:bodies[event]||'',site:sub.site,status:event
+      }).then(function(){
+        toast('Email notification sent to '+toName,'g');
+      },function(err){
+        console.error('EmailJS error:',err);
+        toast('Email failed — opening mailto: fallback','a');
+        openMailtoFallback(toEmail,subjects[event],bodies[event]);
+      });
+    }catch(e){
+      openMailtoFallback(toEmail,subjects[event],bodies[event]);
+    }
+  }else if(toEmail){
+    openMailtoFallback(toEmail,subjects[event],bodies[event]);
+  }
+}
+
+function openMailtoFallback(to,subject,body){
+  window.open('mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body));
+}
+
+/* ═══ LOGIN RATE LIMITING ═══ */
+var _loginAttempts=0,_loginLocked=false;
+function checkLoginLock(){
+  if(_loginAttempts>=5){
+    _loginLocked=true;
+    $$('lbtngo').disabled=true;
+    var e=$$('lerr');e.textContent='Too many failed attempts. Please wait 30 seconds.';e.style.display='block';
+    setTimeout(function(){_loginAttempts=0;_loginLocked=false;$$('lbtngo').disabled=false;$$('lerr').style.display='none';},30000);
+    return true;
+  }
+  return false;
+}
+
+/* ═══ RESUBMIT FROM REJECTION ═══ */
+function startResubmit(subId){
+  var s=S.subs.filter(function(x){return x.id===subId;})[0];
+  if(!s)return;
+  nav('submit');
+  $$('pm-name').value=s.pmName;
+  $$('pm-email').value=s.pmEmail;
+  $$('pm-site').value=s.site;
+  toast('Loaded data from rejected submission — please upload amended POAP','a');
+}
+
+
+/* ═══ PDF EXPORT ═══ */
+function downloadPDF(){
+  var el=$$('exec-report');
+  if(!el||!el.innerHTML.trim()){toast('No report to export — select a report first','r');return;}
+  toast('Generating PDF — please wait...','a');
+  var opt={
+    margin:[10,10,10,10],
+    filename:'nLighten-Executive-Summary-'+new Date().toISOString().slice(0,10)+'.pdf',
+    image:{type:'jpeg',quality:0.95},
+    html2canvas:{scale:2,useCORS:true,logging:false},
+    jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},
+    pagebreak:{mode:['avoid-all','css','legacy']}
+  };
+  html2pdf().set(opt).from(el).save().then(function(){
+    toast('PDF downloaded successfully','g');
+    addAudit('PDF exported');
+  }).catch(function(err){
+    toast('PDF export failed: '+err.message,'r');
+  });
+}
+
+/* ═══ AUDIT TRAIL ═══ */
+var _audit=[];
+function loadAudit(){try{var r=localStorage.getItem('nl_audit');if(r)_audit=JSON.parse(r);}catch(e){}}
+function saveAudit(){try{localStorage.setItem('nl_audit',JSON.stringify(_audit.slice(0,200)));}catch(e){}}
+function addAudit(action,detail){
+  _audit.unshift({ts:new Date().toISOString(),role:S.role||_role||'?',action:action,detail:detail||''});
+  saveAudit();
+}
+function showAuditLog(){
+  loadAudit();
+  var h='<div class="mttl">Audit Trail</div><div style="max-height:60vh;overflow-y:auto"><table class="nlt"><thead><tr><th>Time</th><th>Role</th><th>Action</th><th>Detail</th></tr></thead><tbody>';
+  _audit.slice(0,50).forEach(function(a){
+    h+='<tr><td style="white-space:nowrap">'+fmtDate(a.ts)+' '+new Date(a.ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+'</td><td>'+a.role+'</td><td>'+a.action+'</td><td style="font-size:10px;color:var(--grey)">'+a.detail+'</td></tr>';
+  });
+  h+='</tbody></table></div><div style="margin-top:10px;text-align:right"><button class="btn btn-o" onclick="closeM(\'m-audit\')">Close</button></div>';
+  $$('m-audit-body').innerHTML=h;
+  $$('m-audit').classList.add('on');
+}
+
+/* ═══ PASSWORD HASHING (SHA-256 via Web Crypto) ═══ */
+async function hashCode(str){
+  var buf=new TextEncoder().encode(str);
+  var hash=await crypto.subtle.digest('SHA-256',buf);
+  return Array.from(new Uint8Array(hash)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+}
+// Pre-compute hashes on load
+var CODE_HASHES={};
+(async function(){
+  CODE_HASHES.pm=await hashCode(CODES.pm);
+  CODE_HASHES.rd=await hashCode(CODES.rd);
+  CODE_HASHES.exec=await hashCode(CODES.exec);
+})();
+
+/* ═══ SAVE / RESTORE DRAFT ═══ */
+function saveDraft(){
+  if(!S.pdata){toast('Nothing to save — upload a POAP first','a');return;}
+  var draft={
+    name:$$('pm-name').value,email:$$('pm-email').value,site:$$('pm-site').value,
+    date:$$('pm-date').value,pdata:S.pdata,pqc:S.pqc
+    // Note: photos excluded from draft to avoid localStorage overflow
+  };
+  try{
+    localStorage.setItem('nl_draft',JSON.stringify(draft));
+    toast('Draft saved — your progress is preserved','g');
+    addAudit('Draft saved',draft.site);
+  }catch(e){
+    toast('Could not save draft — storage may be full','r');
+  }
+}
+function restoreDraft(){
+  try{
+    var raw=localStorage.getItem('nl_draft');
+    if(!raw){toast('No saved draft found','a');return;}
+    var draft=JSON.parse(raw);
+    $$('pm-name').value=draft.name||'';
+    $$('pm-email').value=draft.email||'';
+    $$('pm-site').value=draft.site||'';
+    $$('pm-date').value=draft.date||'';
+    S.pdata=draft.pdata;S.pqc=draft.pqc;
+    if(S.pqc){renderQC(S.pqc);}
+    if(S.pqc&&S.pqc.ok){$$('submit-card').style.display='block';}
+    toast('Draft restored — you can continue where you left off','g');
+    addAudit('Draft restored',draft.site);
+  }catch(e){toast('Could not restore draft','r');}
+}
+function clearDraft(){
+  localStorage.removeItem('nl_draft');
+  toast('Draft cleared','g');
+}
+
+/* ═══ PHOTO STORAGE VIA IndexedDB ═══ */
+var _photoDB=null;
+function openPhotoDB(cb){
+  if(_photoDB){cb(_photoDB);return;}
+  var req=indexedDB.open('nl_photos',1);
+  req.onupgradeneeded=function(e){e.target.result.createObjectStore('photos',{keyPath:'id'});};
+  req.onsuccess=function(e){_photoDB=e.target.result;cb(_photoDB);};
+  req.onerror=function(){cb(null);};
+}
+function storePhotoIDB(id,data,cb){
+  openPhotoDB(function(db){
+    if(!db){cb&&cb();return;}
+    var tx=db.transaction('photos','readwrite');
+    tx.objectStore('photos').put({id:id,data:data});
+    tx.oncomplete=function(){cb&&cb();};
+  });
+}
+function loadPhotoIDB(id,cb){
+  openPhotoDB(function(db){
+    if(!db){cb(null);return;}
+    var req=db.transaction('photos','readonly').objectStore('photos').get(id);
+    req.onsuccess=function(){cb(req.result?req.result.data:null);};
+    req.onerror=function(){cb(null);};
+  });
+}
+
+/* ═══ OVERDUE DEADLINE WARNINGS ═══ */
+function checkDeadlines(){
+  var now=new Date();
+  var warnings=[];
+  S.subs.filter(function(s){return s.status==='approved';}).forEach(function(s){
+    var d=s.data;
+    if(d.rff&&d.rff!=='TBC'&&d.rff!=='—'){
+      // Parse forecast like "Apr-26" → Date
+      var parts=d.rff.match(/^([A-Za-z]+)-(\d{2})$/);
+      if(parts){
+        var months={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+        var m=months[parts[1]];
+        if(m!==undefined){
+          var forecast=new Date(2000+parseInt(parts[2]),m,28);
+          var daysLeft=Math.round((forecast-now)/(86400000));
+          if(daysLeft<0)warnings.push({site:s.site,msg:'RFS OVERDUE by '+Math.abs(daysLeft)+' days',sev:'R'});
+          else if(daysLeft<30)warnings.push({site:s.site,msg:'RFS in '+daysLeft+' days ('+d.rff+')',sev:'A'});
+        }
+      }
+    }
+  });
+  return warnings;
+}
+
+/* ═══ PRE-LOADED 19th MARCH REGIONAL DATA ═══ */
+var SITES_19MAR = [
+  {id:'mar19_BRS1',site:'BRS1',pmName:'Rod Courts / Phil Toghill',pmEmail:'rod.courts@nlighten.com',status:'approved',approvedBy:'Sam Hill',approvedTs:'2026-03-19T17:00:00Z',ts:'2026-03-19T12:00:00Z',
+   qc:{score:18,tot:19,ok:true},photos:[],
+   data:{name:'BRISTOL',rno:'6',date:'19/03/2026',stage:'CONSTRUCTION',mw:'1.2MW',rfb:'Feb-26',rff:'Apr-26',
+     rP:'R',rS:'R',rC:'R',rO:'G',rK:'R',rE:'A',
+     pm:'Rod Courts / Phil Toghill',ic:'L3 APPROVED',bud:13540000,eac:15540000,ctd:14640000,ctc:900000,
+     hse:'Ok',foh:'Complete',legal:'Ok',
+     sum:'Roof 95% complete – Insulation/VCL completed 20/03/26. PH1 works nearing completion. UPS SAT level 3 & Load banked. CHW pipework complete. Cables run to chillers and CRAHs complete. Flushing primary loops. Wrapped PH2 Chillers.',
+     upc:'Roof Gutters Install. MEP install. CHW CX level 3/4. Leak detection. Full CX works. Handover plan to be finalised and approved by construction and operations agreed next week. Secondary loop flush and filling all loops.',
+     dectxt:'CXA Agreed and appointed. Business case required for 16.2MVA utility upgrade by end of Q1 2026 to meet DNO milestones.',
+     ms:[{n:'Construction commencement',b:'Sep-25',f:'Sep-25'},{n:'L2 commissioning complete',b:'Feb-26',f:'Feb-26'},{n:'L3 commissioning complete',b:'Mar-26',f:'Mar-26'},{n:'L4 commissioning complete',b:'Mar-26',f:'Apr-26'},{n:'IST complete',b:'Mar-26',f:'Apr-26'},{n:'Phase 1 RFS',b:'Mar-26',f:'Apr-26'},{n:'Project Complete',b:'Mar-26',f:'May-26'}],
+     cl:[{cat:'Construction (Enabling)',bud:2600000,com:3059694},{cat:'Construction (Main)',bud:7200000,com:6663830},{cat:'OFCI / LLE',bud:1900000,com:1493029},{cat:'Planning & Design',bud:500000,com:722013},{cat:'Professional Fees',bud:0,com:794794}],
+     risks:[{r:'A',d:'Adverse weather conditions may disrupt site activities — halted roof works, causing slippage and reduced productivity.'},{r:'R',d:'UPS panel incident — component failure during energisation caused critical path delay, RFS moved from 17 Apr to 1 May.'},{r:'A',d:'Managing project cashflow and critical supply chain payments within contracted timescales.'}],
+     actions:[{d:'Business case for 16.2MVA utility upgrade',owner:'Sam Hill',done:false},{d:'EWN notice on roof regarding weather and lack of payment',owner:'MH',done:false},{d:'Handover schedule for early whitespace',owner:'MH',done:false}],
+     decs:[{d:'Incorporate PH3 chiller slab base starter bars into new PH1 roof replacement',cost:264069,r:'A'},{d:'Peer review of Stage 3 Fire Strategy report',cost:6750,r:'A'}],
+     ehs:{hrs:12328,hc:46,tbt:11,ind:153,nm:2,fa:0,rc:0,yc:2,lti:0,sa:10,sv:13},
+     hasProgressMinutes:true,hasRiskRegister:true,
+     icStatus:'EW Roof: £2.6m approved by IC June\'25 for build. PH1 (1.2MW): £10.9m approved by IC Dec\'24 for build. (Tot PH1 & Roof £13.54m). PH2 (3.6MW): £3.6m approved by IC for design and OFCI to 4.8MW. PH3 (10.8MW): Business case req for 16.2MVA utility upgrade.',
+     permitting:'Submitted for 10.8MW in Aug\'25. Approved and pre-commencement conditions submitted. MCP Permit Approved December 2025.',
+     utility:'Current 5.4MVA. 8MVA offer accepted, via ramp up schedule Nov\'26 to Sep\'27. Supply 11kV. 16.2MVA (£8m) approval req early Q2\'26.',
+     ofciStatus:'PH1: Ordered. PH2: Ordered (£3.6m).',
+     futurePhases:'PH2 (3.6MW) — Contractor costs expected end of March. PH3 (10.8MW HD). End state 10.8MW IT (2.4MW Retail and 8.4MW HD/AI)',
+     photos:[]}},
+
+  {id:'mar19_BHX1',site:'BHX1',pmName:'Gordon McNair',pmEmail:'gordon.mcnair@nlighten.com',status:'approved',approvedBy:'Sam Hill',approvedTs:'2026-03-19T17:00:00Z',ts:'2026-03-19T12:00:00Z',
+   qc:{score:16,tot:19,ok:true},photos:[],
+   data:{name:'BIRMINGHAM',rno:'5',date:'19/03/2026',stage:'CONSTRUCTION',mw:'1.2MW',rfb:'Nov-26',rff:'TBC',
+     rP:'A',rS:'A',rC:'G',rO:'A',rK:'A',rE:'G',
+     pm:'Gordon McNair',ic:'L2 APPROVED',bud:8400000,eac:8200000,ctd:2400000,ctc:5800000,
+     hse:'Ok',foh:'Complete',legal:'OK',
+     sum:'Mid tender complete. Site walks complete. UPS Centiel Proposal complete. Structural report and recommendation complete. BCS Cost plan Estimate complete. Appointed JBA for commercial tender evaluation support.',
+     upc:'Tender process ongoing. Returns due 19/03/26. GC Tender Extension received — likely extension to tender return 30/03/26. Aiming to absorb in review period.',
+     dectxt:'CTO meeting with CSG to confirm structural scope to be arranged.',
+     ms:[{n:'GC Tender Return',b:'Mar-26',f:'Mar-26'},{n:'GC Appointment',b:'Apr-26',f:'Apr-26'},{n:'Construction Start',b:'May-26',f:'TBC'},{n:'Phase 1 RFS',b:'Nov-26',f:'TBC'}],
+     cl:[{cat:'Construction',bud:8400000,com:2400000}],
+     risks:[{r:'G',d:'UPS replacement scope carved out ahead of GC appointment. Expected savings ~£300k below estimate.'},{r:'A',d:'EAC not GC backed — time/cost TBD with GC BAFO.'}],
+     actions:[],decs:[{d:'CTO meeting with CSG to confirm structural scope',cost:0,r:'A'}],
+     ehs:{},hasProgressMinutes:true,hasRiskRegister:true,
+     icStatus:'PH1 (1.2MW): £8.4m approved by IC Dec\'25 for build. PH2 (4.8MW): £0.2m approved for design.',
+     permitting:'PH1 1.2MW Planning approved with pre-commencement conditions Feb 2026. MCP Permit approved November 2025.',
+     utility:'Current 7.0MVA. 15.0MVA offer accepted. Connection 11kV. Ramp up: 7.5MVA by end 2026, 12.6MVA by end 2027, 15.0MVA by end 2028.',
+     ofciStatus:'Phase 1: 2x Chillers ordered and 1 UPS. CRAHs & 2nd UPS to be dealt with GC.',
+     futurePhases:'PH2 (4.8MW). PH3 (9.6MW HD). End state 9.6MW (2.4MW retail and 7.2MW HD/AI).',
+     photos:[]}},
+
+  {id:'mar19_LTN1',site:'LTN1',pmName:'Will Meril / Simon Higgins',pmEmail:'will.meril@nlighten.com',status:'approved',approvedBy:'Sam Hill',approvedTs:'2026-03-19T17:00:00Z',ts:'2026-03-19T12:00:00Z',
+   qc:{score:17,tot:19,ok:true},photos:[],
+   data:{name:'LUTON',rno:'4',date:'19/03/2026',stage:'CONSTRUCTION',mw:'1.2MW',rfb:'Sep-26',rff:'Sep-26',
+     rP:'G',rS:'G',rC:'A',rO:'G',rK:'A',rE:'G',
+     pm:'Will Meril / Simon Higgins',ic:'L3 APPROVED',bud:12310000,eac:12820000,ctd:6100000,ctc:6720000,
+     hse:'OK',foh:'Completed',legal:'OK',
+     sum:'Main tender completed. Front of House completed. JCT signed. End state planning approved. Pre commencement conditions complete for planning. Pedestal load test came back positive. Flooring investigation underway expected 27/03/26.',
+     upc:'Phase 1 works — Strip out, Demolition, Plant bases, OFCI external position.',
+     dectxt:'TX report and capacity to be given by CTO team and confirm size and scope to construction and ops.',
+     ms:[{n:'JCT Signed',b:'Mar-26',f:'Mar-26'},{n:'Strip Out & Demolition',b:'Apr-26',f:'Apr-26'},{n:'MEP Installation',b:'Jun-26',f:'Jun-26'},{n:'Phase 1 RFS',b:'Sep-26',f:'Sep-26'}],
+     cl:[{cat:'Construction',bud:12310000,com:6100000}],
+     risks:[{r:'A',d:'£80K contingency remaining. Remaining known risks will exceed this.'},{r:'A',d:'Reuse floor tiles under review — replacement potential, commercial/program risk TBC.'},{r:'R',d:'GEN & SWGR OFCI technical issue — additional scope required, cost/program risk. CTO to confirm. Urgent.'}],
+     actions:[],decs:[{d:'TX report and capacity to be confirmed by CTO team',cost:0,r:'A'}],
+     ehs:{},hasProgressMinutes:true,hasRiskRegister:true,
+     icStatus:'PH1 (1.2MW): £12.3m approved by IC Dec\'25 for build. £0.2m for PH2 Design & Permitting to 2.4MW. £1.1m approved to secure 9MVA.',
+     permitting:'LPA approved 13/3/26. MCP Permit approved Oct 25.',
+     utility:'Current 4MVA. Increase to 5.4MVA accepted, est. available Jul\'26 (enables 3.6MW IT). 9.0MVA proposal accepted. Completion Oct\'29. Connection 11kV.',
+     ofciStatus:'Phase 1 ALL Procured — 2x Chiller, 1x UPS, 1x TX, 1x Gen, 4x PDU, 6x CRAH, 1x RMU.',
+     futurePhases:'PH2 (3.6MW). PH3 (6.0MW HD). End state 6MW (3.6MW retail and 2.4MW HD).',
+     photos:[]}},
+
+  {id:'mar19_LPL1',site:'LPL1',pmName:'Peter Oliver / Gordon McNair',pmEmail:'peter.oliver@nlighten.com',status:'approved',approvedBy:'Sam Hill',approvedTs:'2026-03-19T17:00:00Z',ts:'2026-03-19T12:00:00Z',
+   qc:{score:16,tot:19,ok:true},photos:[],
+   data:{name:'LIVERPOOL',rno:'4',date:'19/03/2026',stage:'CONSTRUCTION',mw:'2.4MW',rfb:'Sep-26',rff:'Oct-26',
+     rP:'A',rS:'A',rC:'A',rO:'G',rK:'A',rE:'G',
+     pm:'Peter Oliver / Gordon McNair',ic:'L2 APPROVED',bud:11400000,eac:11940000,ctd:6340000,ctc:5600000,
+     hse:'OK',foh:'Feb\'26',legal:'OK',
+     sum:'Mid Bids and Tender RFIs. BSRIA Pipe report — good news, pipework re-usable, official report issued this week. Scope level and Tender report 20/03/26. BAFO Expected 20/03/26.',
+     upc:'IF BAFO exceeds budget by 10%, cost bridge to be completed by cost team once tender return and presented to EXCO. JCT Contract finalised.',
+     dectxt:'CXA Agreed and to be appointed — after BAFO and EXCO Approval.',
+     ms:[{n:'BAFO Return',b:'Mar-26',f:'Mar-26'},{n:'GC Appointment',b:'Apr-26',f:'Apr-26'},{n:'Construction Start',b:'May-26',f:'Jun-26'},{n:'Phase 1 RFS',b:'Sep-26',f:'Oct-26'}],
+     cl:[{cat:'Construction',bud:11400000,com:6340000}],
+     risks:[{r:'R',d:'Planning LPA Delays — acoustic noise chiller night hours expected decision 20/03/26. Construction cannot commence without LPA approval.'},{r:'A',d:'GEN & SWGR OFCI technical issue — additional scope required, CTO to confirm. Urgent.'},{r:'G',d:'Opportunity: £600k in SOFT2 re-allocated to SOFT1 if required.'}],
+     actions:[],decs:[{d:'CXA to be appointed after BAFO and EXCO Approval',cost:0,r:'A'}],
+     ehs:{},hasProgressMinutes:true,hasRiskRegister:true,
+     icStatus:'PH1 2.4MW £11.4m getting site to 2.4MW including FOH & Customer Ready DH. PH2 3.6MW LLE and design of £2.3m approved.',
+     permitting:'Forecast Approval Date 10/02/26 (LPA Delayed) expected decision 20/03/26. MCP Permit approved Nov 25.',
+     utility:'Current 6.0MVA. Increase to 13.2MVA accepted, est. Q3\'28 (enables 9.6MW IT). Connection 33kV — requires new substation. Grid works £1.32m. New substation est. £4.0m.',
+     ofciStatus:'PH1: All ordered — 3x Chillers & 1x1.2MW UPS, 3x400kW UPS, 2x600kW UPS.',
+     futurePhases:'PH2 (3.6MW HD). PH3 (9.6MW HD). No design LPA submitted, no stage 3.',
+     photos:[]}},
+
+  {id:'mar19_MAN1',site:'MAN1',pmName:'Liam Stephenson / Gordon McNair',pmEmail:'liam.stephenson@nlighten.com',status:'approved',approvedBy:'Sam Hill',approvedTs:'2026-03-19T17:00:00Z',ts:'2026-03-19T12:00:00Z',
+   qc:{score:16,tot:19,ok:true},photos:[],
+   data:{name:'MANCHESTER',rno:'3',date:'19/03/2026',stage:'CONSTRUCTION',mw:'3.6MW',rfb:'TBC',rff:'Dec-26',
+     rP:'A',rS:'A',rC:'R',rO:'A',rK:'R',rE:'G',
+     pm:'Liam Stephenson / Gordon McNair',ic:'L2 APPROVED',bud:16860000,eac:27820000,ctd:21460000,ctc:6360000,
+     hse:'OK',foh:'Feb\'26',legal:'OK',
+     sum:'Tender launched 26/02/26. Full BCS Estimate complete with spent to date. EAC additional £7.3m to complete. SPD exceeded approved budget — under review with ISQ.',
+     upc:'Mid bids and tender analysis. Tender Extension RFIs 27th March. QS appointment for Precon Tender Evaluation.',
+     dectxt:'CXA Agreed and to be appointed. NEED QS SUPPORT TO BE AGREED — EXCO to confirm £29k.',
+     ms:[{n:'Tender Launch',b:'Feb-26',f:'Feb-26'},{n:'Tender Return',b:'Mar-26',f:'Mar-26'},{n:'GC Appointment',b:'Apr-26',f:'Apr-26'},{n:'Phase 1 RFS',b:'TBC',f:'Dec-26'}],
+     cl:[{cat:'Construction (incl FOH)',bud:16860000,com:21460000}],
+     risks:[{r:'R',d:'EAC not GC backed — based on BCS estimate. SPD exceeded approved budget, under review with ISQ.'},{r:'A',d:'QS appointment urgent — support for tender analysis required. Tender return 27th March.'},{r:'R',d:'GEN & SWGR OFCI technical issue — additional scope required, CTO to confirm. Urgent.'}],
+     actions:[{d:'QS appointment for tender evaluation',owner:'EXCO',done:false}],
+     decs:[{d:'QS support £29k to be agreed by EXCO',cost:29000,r:'A'},{d:'CXA appointment after GC selection',cost:0,r:'A'}],
+     ehs:{},hasProgressMinutes:true,hasRiskRegister:true,
+     icStatus:'PH1: 3.6MW. €18.9m (£16.46m) approved to build. FOH approved Nov\'25: £0.4m. PH2: 4.8MW LLE of £1.8m approved.',
+     permitting:'Approved 16/2/2026. No conditions to discharge. MCP Approved October 2025.',
+     utility:'Current 6.5MVA. 9MVA costs £1.13m for power + est. £4m for new 33kV SS. Change end state to 4.8MW IT or find other power solutions.',
+     ofciStatus:'2x Gens, 5x Chillers, 1x UPS ORDERED — more for future phases.',
+     futurePhases:'PH2 (4.8MW HD). PH3 (6.0MW HD). Needs more power.',
+     photos:[]}},
+
+  {id:'mar19_STN1',site:'STN1',pmName:'Edward Daniels',pmEmail:'edward.daniels@nlighten.com',status:'approved',approvedBy:'Sam Hill',approvedTs:'2026-03-19T17:00:00Z',ts:'2026-03-19T12:00:00Z',
+   qc:{score:15,tot:19,ok:true},photos:[],
+   data:{name:'STANSTED',rno:'3',date:'19/03/2026',stage:'CONSTRUCTION',mw:'2.4MW',rfb:'Nov-26',rff:'TBC',
+     rP:'A',rS:'R',rC:'A',rO:'A',rK:'R',rE:'G',
+     pm:'Edward Daniels',ic:'L2 APPROVED',bud:17800000,eac:18050000,ctd:8160000,ctc:9890000,
+     hse:'OK',foh:'Complete',legal:'OK',
+     sum:'Phase 1 and front of house works are completed. BCS Cost plan and Estimate on new scope complete. Phase 2 scope of works and design due end of March.',
+     upc:'Phase 2 scope of works and design due end of March. CTO forecast complete back to construction 6/4/26.',
+     dectxt:'L3 email approval required for the 2.4MW once GC backup Capex available.',
+     ms:[{n:'Phase 1 Complete',b:'Nov-25',f:'Nov-25'},{n:'PH2 Design Complete',b:'Mar-26',f:'Apr-26'},{n:'PH2 GC Tender',b:'May-26',f:'TBC'},{n:'Phase 2 RFS',b:'Nov-26',f:'TBC'}],
+     cl:[{cat:'Construction (PH1 & PH2)',bud:17800000,com:8160000}],
+     risks:[{r:'R',d:'Program risk due to delayed design. OFCI procured based on previous 2.4MW scheme — capital plant needs to be reused in new design.'},{r:'A',d:'Planning amendments required for new scheme.'},{r:'R',d:'GEN & SWGR OFCI technical issue — additional scope required, CTO to confirm. Urgent.'}],
+     actions:[],decs:[],
+     ehs:{},hasProgressMinutes:true,hasRiskRegister:true,
+     icStatus:'PH1 1.2MW £17.8m PH1 & PH2 getting site to 2.4MW including FOH & Customer Ready DH. PH2 2.4MW — L3 email approval req.',
+     permitting:'Submitted under old scheme — will require new amendment. Forecast 14/01/2026 — OVERDUE LPA Delay. MCP Permits Approved Oct 2025.',
+     utility:'Current 5MVA. Increase to 10.4MVA accepted, est. Jul\'27. 11kV. Separate 5.4MVA feed must remain electrically separate from current 5.0MVA.',
+     ofciStatus:'ALL Ordered Except PDUs — can\'t order as design has changed.',
+     futurePhases:'PH3 (3.6MW) HD Augment — if continued retail sales, this phase unlikely to be executed.',
+     photos:[]}}
+];
+
+function seedMarchData(){
+  loadSubs();
+  var hasSeeded=S.subs.some(function(s){return s.id&&s.id.indexOf('mar19_')===0;});
+  if(!hasSeeded){
+    S.subs=SITES_19MAR.concat(S.subs);
+    saveSubs();
+    S.notifs.push({msg:'19th March 2026 UK Construction Update loaded — 6 sites approved by Sam Hill',type:'approved',ts:'2026-03-19T17:00:00Z'});
+    saveNotifs();
+  }
+}
+
+/* ═══ INIT ═══ */
+(function init(){
+  seedMarchData();
+  $$('pm-date').value=new Date().toISOString().slice(0,10);
+  // Auto-load if URL has params
+  var params=new URLSearchParams(window.location.search);
+  if(params.get('view')==='exec'){
+    pickRole('exec');
+  }
+})();
+</script>
+</body>
+</html>
